@@ -3,6 +3,9 @@ uuid = "22fff31a-bb86-4dc7-a268-e891319ab808"
 authors = ["Eric Berquist <eric.berquist@gmail.com> and contributors"]
 version = "0.1.0"
 
+[deps]
+NPZ = "15e1cf62-19b3-5cfa-8e77-841668bca605"
+
 [compat]
 julia = "1"
 
