@@ -7,42 +7,7 @@ import Exdir: create_object_directory,
     DATASET_TYPENAME,
     FILE_TYPENAME
 
-struct ExdirFixture
-    "x"
-    testpath::String
-    "y"
-    testfile::String
-    "z"
-    testdir::String
-end
-
-function setup_teardown_folder()::ExdirFixture
-    tmpdir = mktempdir()
-    fx = ExdirFixture(
-        tmpdir,
-        joinpath(tmpdir, "test.exdir"),
-        joinpath(tmpdir, "exdir_dir")
-    )
-    # @produce fx
-    # rm(tmpdir, recursive=true)
-    fx
-end
-
-# TODO leftovers from thinking about Jute.jl fixtures...
-# setup_teardown_file = @local_fixture begin
-function setup_teardown_file()
-    tmpdir = mktempdir()
-    fx = ExdirFixture(
-        tmpdir,
-        joinpath(tmpdir, "test.exdir"),
-        joinpath(tmpdir, "exdir_dir")
-    )
-    f = exdiropen(fx.testfile, "w")
-    # @produce (fx, f)
-    # close(f)
-    # rm(tmpdir, recursive=true)
-    (fx, f)
-end
+include("support.jl")
 
 """
     remove(name)
@@ -83,11 +48,6 @@ with_suffix(path::AbstractString, suffix::AbstractString) = splitext(path)[1] * 
     @test with_suffix("foo.txt", ".log") == "foo.log"
     @test with_suffix("foo.txt.2", ".log") == "foo.txt.log"
     @test with_suffix("foo", ".txt") == "foo.txt"
-end
-
-function cleanup_fixture(fx::ExdirFixture)
-    rm(fx.testpath, recursive=true)
-    # TODO if fx.testfile exists, make sure it's closed, then remove the tree
 end
 
 @testset "file_init" begin
