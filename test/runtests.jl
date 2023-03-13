@@ -1,6 +1,8 @@
-using Exdir
 using Test
 
 @testset "Exdir.jl" begin
-    # Write your tests here.
+    # include("example_hdf5.jl")
+    # include("example.jl")
+    include("file.jl")
+    # include("dataset.jl")
 end
