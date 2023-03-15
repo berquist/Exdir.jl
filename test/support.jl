@@ -1,3 +1,5 @@
+using Exdir
+
 struct ExdirFixture
     "x"
     testpath::String
@@ -38,4 +40,13 @@ end
 function cleanup_fixture(fx::ExdirFixture)
     rm(fx.testpath, recursive=true)
     # TODO if fx.testfile exists, make sure it's closed, then remove the tree
+end
+
+function exdir_tmpfile()
+    tmpdir = mktempdir()
+    testpath = joinpath(tmpdir, "test.exdir")
+    f = exdiropen(testpath, "w")
+    f
+    # close(f)
+    # rm(tmpdir, recursive=true)
 end

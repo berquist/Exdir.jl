@@ -3,60 +3,210 @@ module Exdir
 import YAML
 
 export attributes,
+    attrs,
     create_dataset,
     create_group,
+    delete!,
     exdiropen,
     is_nonraw_object_directory,
+    require_group,
     setattrs!
 
-# metadata
-EXDIR_METANAME = "exdir"
-TYPE_METANAME = "type"
-VERSION_METANAME = "version"
+include("constants.jl")
+include("mode.jl")
+include("path.jl")
 
-# filenames
-META_FILENAME = "exdir.yaml"
-ATTRIBUTES_FILENAME = "attributes.yaml"
-RAW_FOLDER_NAME = "__raw__"
+abstract type AbstractObject end
 
-# typenames
-DATASET_TYPENAME = "dataset"
-GROUP_TYPENAME = "group"
-FILE_TYPENAME = "file"
-
-struct Attributes
+struct Attribute
 end
 
-struct Object
+struct Object <: AbstractObject
+    root_directory::String
+    parent_path::String
+    object_name::String
+    file
+    relative_path::String
+    name::String
+
+    function Object(; root_directory, parent_path, object_name, file)
+        relative_path = joinpath(parent_path, object_name)
+        relative_path = if relative_path == "." "" else relative_path end
+        name = "/" * relative_path
+        new(
+            root_directory,
+            parent_path,
+            object_name,
+            file,
+            relative_path,
+            name
+        )
+    end
+end
+
+function Base.getproperty(obj::AbstractObject, sym::Symbol)
+    if sym == :directory
+        return joinpath(obj.root_directory, obj.relative_path)
+    elseif sym == :attrs
+        return Attribute()
+    elseif sym == :meta
+        return Attribute()
+    elseif sym == :attributes_filename
+        return joinpath(obj.directory, ATTRIBUTES_FILENAME)
+    elseif sym == :meta_filename
+        return joinpath(obj.directory, META_FILENAME)
+    elseif sym == :parent
+        if length(splitpath(obj.parent_path)) < 1
+            return nothing
+        end
+        (parent_parent_path, parent_name) = splitdir(obj.parent_path)
+        return Group(
+            root_directory = obj.root_directory,
+            parent_path = parent_parent_path,
+            object_name = parent_name,
+            file = obj.file,
+        )
+    else
+        return getfield(obj, sym)
+    end
+end
+
+function Base.setproperty!(obj::AbstractObject, f::Symbol, v)
+    if f == :attrs
+        nothing
+    else
+        setfield!(obj, f, v)
+    end
+end
+
+struct Raw <: AbstractObject
+    root_directory::String
+    parent_path::String
+    object_name::String
+    file
+    relative_path::String
+    name::String
+
+    function Raw(; root_directory, parent_path, object_name, file=nothing)
+        relative_path = joinpath(parent_path, object_name)
+        relative_path = if relative_path == "." "" else relative_path end
+        name = "/" * relative_path
+        new(
+            root_directory,
+            parent_path,
+            object_name,
+            file,
+            relative_path,
+            name
+        )
+    end
 end
 
 struct Dataset
 end
 
-function Base.size(dset::Dataset)
+function Base.iterate(dset::Dataset)
     ()
 end
 
 Base.length(dset::Dataset) = prod(size(dset))
 
-function Base.iterate(dset::Dataset)
+function Base.size(dset::Dataset)
+    ()
+end
+
+struct Group <: AbstractObject
+    root_directory::String
+    parent_path::String
+    object_name::String
+    file
+    relative_path::String
+    name::String
+
+    function Group(; root_directory, parent_path, object_name, file=nothing)
+        relative_path = joinpath(parent_path, object_name)
+        relative_path = if relative_path == "." "" else relative_path end
+        name = "/" * relative_path
+        new(
+            root_directory,
+            parent_path,
+            object_name,
+            file,
+            relative_path,
+            name
+        )
+    end
+end
+
+function Base.in(name::AbstractString, grp::Group)
+    false
+end
+
+function Base.get(grp::Group, name::AbstractString)
+    nothing
+end
+
+function Base.getindex(grp::Group, name::AbstractString)
+    nothing
+end
+
+function Base.iterate(grp::Group)
+    ()
+end
+
+function Base.length(grp::Group)
     0
 end
 
-struct Group
-    # root_directory
-    # parent_path
-    # object_name
-    # file
+function delete!(grp::Group, name::AbstractString)
+    nothing
 end
 
-struct File
-    location::AbstractString
-    writable::Bool
+struct File <: AbstractObject
+    root_directory::String
+    parent_path::String
+    object_name::String
+    file
+    relative_path::String
+    name::String
+
+    function File(; root_directory, parent_path, object_name, file)
+        relative_path = joinpath(parent_path, object_name)
+        relative_path = if relative_path == "." "" else relative_path end
+        name = "/" * relative_path
+        new(
+            root_directory,
+            parent_path,
+            object_name,
+            file,
+            relative_path,
+            name
+        )
+    end
+
+    # location::AbstractString
+    # writable::Bool
+
     # mode::AbstractString
     # allow_remove::Bool
     # name_validation
     # plugins
+end
+
+function Base.in(name::AbstractString, file::File)
+    false
+end
+
+function Base.iterate(::File)
+    ("hello", "world")
+end
+
+function Base.iterate(::File, ::String)
+    nothing
+end
+
+function delete!(file::File, name::AbstractString)
+    nothing
 end
 
 """
@@ -132,7 +282,13 @@ function exdiropen(directory::AbstractString, mode::AbstractString)::Exdir.File
         create_object_directory(location, defaultmetadata(FILE_TYPENAME))
     end
 
-    Exdir.File(location, writeable)
+    # Exdir.File(location, writeable)
+    File(
+        root_directory = location,
+        parent_path = "",
+        object_name = "",
+        file = nothing,
+    )
 end
 
 # function exdiropen(directory::AbstractString, mode::AbstractString)
@@ -146,7 +302,7 @@ end
 function Base.keys(file::File)
 end
 
-function Base.setindex!(attrs::Attributes, value, name::AbstractString)
+function Base.setindex!(attrs::Attribute, value, name::AbstractString)
 end
 
 function defaultmetadata(typename::String)
@@ -165,19 +321,50 @@ function setattrs!(obj, name::AbstractString, value)
 end
 
 function attributes(object::Object)
-    Attributes()
+    Attribute()
 end
 
 function attributes(dset::Dataset)
-    Attributes()
+    Attribute()
 end
 
 function attributes(group::Group)
-    Attributes()
+    Attribute()
 end
 
 function attributes(file::File)
-    Attributes()
+    Attribute()
+end
+
+function attrs(thing)
+end
+
+function create_raw(grp::Group, name::AbstractString)
+end
+
+function _create_group(x, name::AbstractString)
+    path = name_to_asserted_group_path(name)
+    if length(splitpath(path)) > 1
+        (parent, pname) = splitdir(path)
+        subgroup = require_group(x, parent)
+        return create_group(subgroup, pname)
+    end
+
+    _assert_valid_name(path, x)
+
+    if name in x
+        throw(ArgumentError("'$name' already exists in $(x.name)"))
+    end
+
+    group_directory = joinpath(x.directory, path)
+    create_object_directory(group_directory, defaultmetadata(GROUP_TYPENAME))
+
+    Group(
+        root_directory = x.root_directory,
+        parent_path = x.relative_path,
+        object_name = name,
+        file = x.file,
+    )
 end
 
 """
@@ -186,7 +373,62 @@ end
 
 """
 function create_group(file::File, name::AbstractString)
-    Group()
+    path = remove_root(name)
+    _create_group(file, name)
+end
+
+"""
+    create_group(grp, name)
+
+
+"""
+function create_group(grp::Group, name::AbstractString)
+    _create_group(grp, name)
+end
+
+# """
+#     require_group(file, name)
+
+
+# """
+# function require_group(file::File, name::AbstractString)
+#     path = remove_root(name)
+#     Group(
+#         root_directory =,
+#         parent_path = ,
+#         object_name = ,
+#         file =,
+#     )
+# end
+
+"""
+    require_group(grp, name)
+
+
+"""
+function require_group(grp::Group, name::AbstractString)
+    path = name_to_asserted_group_path(name)
+
+    if length(splitpath(path)) > 1
+        (parent, pname) = splitdir(path)
+        subgroup = require_group(x, parent)
+        return create_group(subgroup, pname)
+    end
+
+    group_directory = joinpath(grp.directory, path)
+
+    if name in grp
+        current_object = grp[name]
+        if isa(current_object, Group)
+            return current_object
+        else
+            throw(ArgumentError("An object with name '$name' already exists, but it is not a Group."))
+        end
+    elseif ispath(group_directory)
+        throw(ArgumentError("Directory '$(group_directory)' already exists, but is not an Exdir object."))
+    end
+
+    create_group(grp, name)
 end
 
 struct Datatype
@@ -214,13 +456,16 @@ function Base.write(dset::Dataset, data)
     nothing
 end
 
+function open_object(directory)
+end
+
 function is_nonraw_object_directory(directory::AbstractString)
     meta_filename = joinpath(directory, META_FILENAME)
     if !ispath(meta_filename) && !isfile(meta_filename)
         return false
     end
     meta_data = YAML.load_file(meta_filename)
-    # is not instance of dict return false
+    # TODO is not instance of dict return false
     if !haskey(meta_data, EXDIR_METANAME)
         return false
     end
@@ -253,6 +498,10 @@ function create_object_directory(directory::AbstractString, metadata)
     mkdir(directory)
     YAML.write_file(joinpath(directory, META_FILENAME), metadata)
     nothing
+end
+
+function _assert_valid_name(name::AbstractString, container)
+    # container.file.name_validation(container.directory, name)
 end
 
 end
