@@ -1,4 +1,6 @@
+---
 name: TagBot
+# yamllint disable-line rule:truthy
 on:
   issue_comment:
     types:
@@ -9,7 +11,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.actor == 'JuliaTagBot'
     runs-on: ubuntu-latest
     steps:
-      - uses: JuliaRegistries/TagBot@v1
+      - uses: JuliaRegistries/TagBot@4e2dfa4ac8ad1e1a0af1e03f8411855200fac8ce # v1.15.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ssh: ${{ secrets.DOCUMENTER_KEY }}
