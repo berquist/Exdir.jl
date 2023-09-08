@@ -1,14 +1,14 @@
 # metadata
-EXDIR_METANAME = "exdir"
-TYPE_METANAME = "type"
-VERSION_METANAME = "version"
+const EXDIR_METANAME = "exdir"
+const TYPE_METANAME = "type"
+const VERSION_METANAME = "version"
 
 # filenames
-META_FILENAME = "exdir.yaml"
-ATTRIBUTES_FILENAME = "attributes.yaml"
-RAW_FOLDER_NAME = "__raw__"
+const META_FILENAME = "exdir.yaml"
+const ATTRIBUTES_FILENAME = "attributes.yaml"
+const RAW_FOLDER_NAME = "__raw__"
 
 # typenames
-DATASET_TYPENAME = "dataset"
-GROUP_TYPENAME = "group"
-FILE_TYPENAME = "file"
+const DATASET_TYPENAME = "dataset"
+const GROUP_TYPENAME = "group"
+const FILE_TYPENAME = "file"
