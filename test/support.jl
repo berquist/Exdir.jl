@@ -1,20 +1,30 @@
 using Exdir
 
 struct ExdirFixture
-    "x"
+    "The base location that will hold a separate Exdir directory and 'file'."
     testpath::String
-    "y"
+    "Location that may be used for an Exdir 'file'."
     testfile::String
-    "z"
+    "TODO I'm not sure how this differs from testfile.
+    Not actually used by any of the fixture setup functions."
     testdir::String
 end
+
+# Reminder about indexing in Python tests:
+# 0 -> testpath
+# 1 -> testfile
+# 2 -> testdir
+# 3 -> f
+
+const TESTFILE = "test.exdir"
+const TESTDIR = "exdir_dir"
 
 function setup_teardown_folder()::ExdirFixture
     tmpdir = mktempdir()
     fx = ExdirFixture(
         tmpdir,
-        joinpath(tmpdir, "test.exdir"),
-        joinpath(tmpdir, "exdir_dir")
+        joinpath(tmpdir, TESTFILE),
+        joinpath(tmpdir, TESTDIR)
     )
     # @produce fx
     # rm(tmpdir, recursive=true)
@@ -27,8 +37,8 @@ function setup_teardown_file()
     tmpdir = mktempdir()
     fx = ExdirFixture(
         tmpdir,
-        joinpath(tmpdir, "test.exdir"),
-        joinpath(tmpdir, "exdir_dir")
+        joinpath(tmpdir, TESTFILE),
+        joinpath(tmpdir, TESTDIR)
     )
     f = exdiropen(fx.testfile, "w")
     # @produce (fx, f)
@@ -44,7 +54,7 @@ end
 
 function exdir_tmpfile()
     tmpdir = mktempdir()
-    testpath = joinpath(tmpdir, "test.exdir")
+    testpath = joinpath(tmpdir, TESTFILE)
     f = exdiropen(testpath, "w")
     f
     # close(f)
