@@ -1,0 +1,20 @@
+---
+name: GitHub Updater (monthly)
+# yamllint disable-line rule:truthy
+on:
+  schedule:
+    # 1st of every month (and action will check for specific months)
+    - cron: "0 0 1 * *"
+
+jobs:
+  test-detect:
+    name: Run GitHub Updater
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      - name: Detect and Update
+        uses: vsoch/github-updater@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: .github/workflows
