@@ -25,18 +25,52 @@ include("support.jl")
     cleanup_fixture(fx)
 end
 
-# @testset "raw_create" begin
-#     (fx, f) = setup_teardown_file()
+@testset "raw_create" begin
+    (fx, f) = setup_teardown_file()
 
-#     grp = create_group(f, "test")
+    raw = create_raw(f, "test")
 
-#     grp2 = create_group(grp, "a")
+    raw2 = f["test"]
 
-#     @test isa(grp, Exdir.Group)
+    @test ispath(joinpath(f.root_directory, "test"))
 
-#     grp3 = create_group(grp, "b/")
-#     @test isa(grp3, Exdir.Group)
+    @test raw == raw2
 
-#     cleanup_fixture(fx)
-# end
+    cleanup_fixture(fx)
+end
+
+@testset "raw_require" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    raw = require_raw(grp, "foo")
+    raw2 = require_raw(grp, "foo")
+
+    raw3 = grp["foo"]
+
+    @test ispath(joinpath(f.root_directory, "test", "foo"))
+
+    @test raw == raw2
+    @test raw == raw3
+
+    cleanup_fixture(fx)
+end
+
+@testset "raw_create_twice" begin
+    f = exdir_tmpfile()
+
+    create_raw(f, "test")
+    @test_throws ArgumentError create_raw(f, "test")
+end
+
+@testset "raw_create_dataset" begin
+    f = exdir_tmpfile()
+
+    grp = create_group(f, "group")
+    dset = create_dataset(grp, "dataset", shape=(1, 1))
+    raw = create_raw(dset, "raw")
+
+    @test ispath(joinpath(f.directory, "group", "dataset", "raw"))
+end
 

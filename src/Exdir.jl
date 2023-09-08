@@ -2,21 +2,26 @@ module Exdir
 
 import YAML
 
-export attributes,
+export
+    attributes,
     attrs,
     create_dataset,
     create_group,
+    create_raw,
     delete!,
     exdiropen,
     is_nonraw_object_directory,
     require_group,
+    require_raw,
     setattrs!
 
+include("consistency.jl")
 include("constants.jl")
 include("mode.jl")
 include("path.jl")
 
 abstract type AbstractObject end
+abstract type AbstractGroup <: AbstractObject end
 
 struct Attribute
 end
@@ -79,6 +84,58 @@ function Base.setproperty!(obj::AbstractObject, f::Symbol, v)
     end
 end
 
+function create_raw(obj::AbstractObject, name::AbstractString)
+    directory_name = joinpath(obj.directory, name)
+    if ispath(directory_name)
+        # TODO
+        throw(ArgumentError("'$(directory_name)' already exists in 'self'"))
+    end
+    mkdir(directory_name)
+    Raw(
+        root_directory = obj.root_directory,
+        parent_path = obj.relative_path,
+        object_name = name,
+        file = obj.file,
+    )
+end
+
+function require_raw(obj::AbstractObject, name::AbstractString)
+    directory_name = joinpath(obj.directory, name)
+    if ispath(directory_name)
+        if is_nonraw_object_directory(directory_name)
+            throw(ArgumentError("Directory '$(directory_name)' already exists, but is not raw."))
+        end
+        return Raw(
+            root_directory = obj.root_directory,
+            parent_path = obj.relative_path,
+            object_name = name,
+            file = obj.file,
+        )
+    end
+    create_raw(obj, name)
+end
+
+# TODO
+# function parent(obj::AbstractObject)
+# end
+
+function Base.:(==)(obj::AbstractObject, other)
+    # if obj.file.io_mode == OpenMode::FILE_CLOSED
+    false
+end
+
+function Base.print(io::IO, obj::AbstractObject)
+    # if closed
+    # print(io, "<Closed Exdir Group>")
+    print(io, "<Exdir Group '$(obj.directory)' (mode TODO)>")
+end
+
+"""
+
+Raw objects are simple folders with any content.
+
+Raw objects currently have no features apart from showing their path.
+"""
 struct Raw <: AbstractObject
     root_directory::String
     parent_path::String
@@ -102,7 +159,27 @@ struct Raw <: AbstractObject
     end
 end
 
-struct Dataset
+struct Dataset <: AbstractObject
+    root_directory::String
+    parent_path::String
+    object_name::String
+    file
+    relative_path::String
+    name::String
+
+    function Dataset(; root_directory, parent_path, object_name, file)
+        relative_path = joinpath(parent_path, object_name)
+        relative_path = if relative_path == "." "" else relative_path end
+        name = "/" * relative_path
+        new(
+            root_directory,
+            parent_path,
+            object_name,
+            file,
+            relative_path,
+            name
+        )
+    end
 end
 
 function Base.iterate(dset::Dataset)
@@ -115,7 +192,7 @@ function Base.size(dset::Dataset)
     ()
 end
 
-struct Group <: AbstractObject
+struct Group <: AbstractGroup
     root_directory::String
     parent_path::String
     object_name::String
@@ -138,31 +215,70 @@ struct Group <: AbstractObject
     end
 end
 
-function Base.in(name::AbstractString, grp::Group)
+function Base.in(name::AbstractString, grp::AbstractGroup)
     false
 end
 
-function Base.get(grp::Group, name::AbstractString)
+function Base.get(grp::AbstractGroup, name::AbstractString)
     nothing
 end
 
-function Base.getindex(grp::Group, name::AbstractString)
-    nothing
+function Base.getindex(grp::AbstractGroup, name::AbstractString)
+    path = name_to_asserted_group_path(name)
+    parts = splitpath(path)
+    if length(parts) > 1
+        top_directory = parts[1]
+        sub_name = joinpath(parts[2:end])
+        return grp[top_directory][sub_name]
+    end
+
+    if !in(name, grp)
+        error_message = "No such object: '$name' in path '$(grp.directory)'"
+        throw(ArgumentError(error_message))
+    end
+
+    directory = joinpath(grp.directory, path)
+
+    # TODO create one function that handles all Raw creation
+    if is_raw_object_directory(directory)
+        return Raw(
+            root_directory = grp.root_directory,
+            parent_path = grp.relative_path,
+            object_name = name,
+            file = grp.file,
+        )
+    end
+
+    if !is_nonraw_object_directory(directory)
+        throw(ArgumentError("Directory '$directory' is not a valid exdir object."))
+    end
+
+    meta_filename = joinpath(directory, META_FILENAME)
+    meta_data = YAML.load_file(meta_filename)
+    typename = meta_data[EXDIR_METANAME][TYPE_METANAME]
+    if typename == DATASET_TYPENAME
+        return _dataset(grp, name)
+    elseif typename == GROUP_TYPENAME
+        return _group(grp, name)
+    else
+        error_string = "Object $name has data type $typename.\nWe cannot open objects of this type."
+        throw(ArgumentError(error_string))
+    end
 end
 
-function Base.iterate(grp::Group)
+function Base.iterate(grp::AbstractGroup)
     ()
 end
 
-function Base.length(grp::Group)
+function Base.length(grp::AbstractGroup)
     0
 end
 
-function delete!(grp::Group, name::AbstractString)
+function delete!(grp::AbstractGroup, name::AbstractString)
     nothing
 end
 
-struct File <: AbstractObject
+struct File <: AbstractGroup
     root_directory::String
     parent_path::String
     object_name::String
@@ -299,7 +415,7 @@ function Base.close(file::File)
     nothing
 end
 
-function Base.keys(file::File)
+function Base.keys(grp::AbstractGroup)
 end
 
 function Base.setindex!(attrs::Attribute, value, name::AbstractString)
@@ -337,9 +453,6 @@ function attributes(file::File)
 end
 
 function attrs(thing)
-end
-
-function create_raw(grp::Group, name::AbstractString)
 end
 
 function _create_group(x, name::AbstractString)
@@ -411,7 +524,7 @@ function require_group(grp::Group, name::AbstractString)
 
     if length(splitpath(path)) > 1
         (parent, pname) = splitdir(path)
-        subgroup = require_group(x, parent)
+        subgroup = require_group(grp, parent)
         return create_group(subgroup, pname)
     end
 
@@ -431,32 +544,146 @@ function require_group(grp::Group, name::AbstractString)
     create_group(grp, name)
 end
 
-struct Datatype
+function Base.write(dset::Dataset, data)
+    error("unimplemented")
 end
 
-function create_dataset(grp::Group, name::AbstractString;
-                        data)
-    # TODO get shape (size) and dtype of data
-    Dataset()
+function _prepare_write(data, attrs::AbstractDict, meta::AbstractDict)
+    if isnothing(data)
+        data = nothing
+    elseif !isa(data, AbstractArray)
+        data = collect(data)
+    end
+    # If plugins were implemented, they would have been applied to attrs and
+    # meta rather than simply passing them through.
+    (data, attrs, meta)
 end
 
-# function create_dataset(grp::Group, name::AbstractString;
+function create_dataset(grp::AbstractGroup, name::AbstractString;
+                        shape=nothing,
+                        dtype=nothing,
+                        data=nothing)
+    # https://github.com/CINPLA/exdir/blob/89c1d34a5ce65fefc09b6fe1c5e8fef68c494e75/exdir/core/group.py#L72
+    path = name_to_asserted_group_path(name)
+
+    if length(splitpath(path)) > 1
+        (parent, pname) = splitdir(path)
+        subgroup = require_group(grp, parent)
+        return create_dataset(subgroup, pname,
+                              shape=shape, dtype=dtype, data=data)
+    end
+
+    _assert_valid_name(name, grp)
+
+    if isnothing(data) && isnothing(shape)
+        error("Cannot create dataset. Missing shape or data keyword.")
+    end
+
+    (prepared_data, attrs, meta) = _prepare_write(
+        data,
+        Dict(),
+        defaultmetadata(DATASET_TYPENAME)
+    )
+
+    _assert_data_shape_dtype_match(prepared_data, shape, dtype)
+
+    (shape, dtype) = _data_to_shape_and_dtype(prepared_data, shape, dtype)
+
+    if !isnothing(prepared_data)
+        if !isnothing(shape) && (size(prepared_data) != shape)
+            prepared_data = reshape(prepared_data, shape)
+        end
+    else
+        if isnothing(shape)
+            prepared_data = nothing
+        else
+            # TODO fillvalue as kwarg
+            fillvalue = 0.0
+            prepared_data = fill(dtype(fillvalue), shape)
+        end
+    end
+
+    if isnothing(prepared_data)
+        error("Could not create a meaningful dataset.")
+    end
+
+    create_object_directory(joinpath(grp.directory, name), meta)
+
+    dataset = Dataset(
+        root_directory = grp.root_directory,
+        parent_path = grp.relative_path,
+        object_name = name,
+        file = grp.file
+    )
+    # dataset._reset_data(prepared_data, attrs, None)  # meta already set above
+    dataset
+end
+
+# function create_dataset(grp::AbstractGroup, name::AbstractString;
 #                         shape::Dims,
-#                         dtype)
-#     Dataset()
+#                         dtype::DataType)
+#     create_dataset(grp, name; shape=shape, dtype=dtype, data=nothing)
 # end
 
-function create_dataset(grp::Group, name::AbstractString;
-                        shape::Dims)
-    # create_dataset(grp, name; shape=shape, dtype=Float64)
-    Dataset()
+# function create_dataset(grp::AbstractGroup, name::AbstractString;
+#                         data)
+#     create_dataset(grp, name; shape=size(data), dtype=eltype(data), data=data)
+# end
+
+# function create_dataset(grp::AbstractGroup, name::AbstractString;
+#                         shape::Dims)
+#     create_dataset(grp, name; shape=shape, dtype=Float64, data=nothing)
+# end
+
+function root_directory(path::AbstractString)
+    # https://github.com/CINPLA/exdir/blob/89c1d34a5ce65fefc09b6fe1c5e8fef68c494e75/exdir/core/exdir_object.py#L128
+    path = realpath(path)
+    found = false
+    while !found
+        (parent, pname) = splitdir(path)
+        if parent == path
+            return nothing
+        end
+        if !is_nonraw_object_directory(path)
+            path = parent
+            continue
+        end
+        meta_data = YAML.load_file(joinpath(path, META_FILENAME))
+        if !haskey(meta_data, EXDIR_METANAME)
+            path = parent
+            continue
+        end
+        exdir_meta = meta_data[EXDIR_METANAME]
+        if !haskey(exdir_meta, TYPE_METANAME)
+            path = parent
+            continue
+        end
+        if FILE_TYPENAME != exdir_meta[TYPE_METANAME]
+            path = parent
+            continue
+        end
+        found = true
+    end
+    path
 end
 
-function Base.write(dset::Dataset, data)
-    nothing
+function is_inside_exdir(path::AbstractString)
+    # https://github.com/CINPLA/exdir/blob/89c1d34a5ce65fefc09b6fe1c5e8fef68c494e75/exdir/core/exdir_object.py#L161
+    path = realpath(path)
+    !isnothing(root_directory(path))
 end
 
-function open_object(directory)
+function assert_inside_exdir(path::AbstractString)
+    # https://github.com/CINPLA/exdir/blob/89c1d34a5ce65fefc09b6fe1c5e8fef68c494e75/exdir/core/exdir_object.py#L166
+    if !is_inside_exdir(path)
+        error("Path " + path + " is not inside an Exdir repository.")
+    end
+end
+
+function open_object(directory::AbstractString)
+    # https://github.com/CINPLA/exdir/blob/89c1d34a5ce65fefc09b6fe1c5e8fef68c494e75/exdir/core/exdir_object.py#L172
+    path = realpath(directory)
+    assert_inside_exdir(path)
 end
 
 function is_nonraw_object_directory(directory::AbstractString)
@@ -480,6 +707,18 @@ function is_nonraw_object_directory(directory::AbstractString)
 end
 
 """
+WARNING: Does not test of inside exdir directory,
+only if the object can be an exdir object (i.e. a directory).
+"""
+function is_exdir_object(directory)
+    isdir(directory)
+end
+
+function is_raw_object_directory(directory::AbstractString)
+    is_exdir_object(directory) && !is_nonraw_object_directory(directory)
+end
+
+"""
     create_object_directory(directory, metadata)
 
 Create object directory and meta file if the directory doesn't already exist.
@@ -493,7 +732,7 @@ function create_object_directory(directory::AbstractString, metadata)
     valid_types = [DATASET_TYPENAME, FILE_TYPENAME, GROUP_TYPENAME]
     typename = metadata[EXDIR_METANAME][TYPE_METANAME]
     if !(typename in valid_types)
-        throw(("$typename is not a valid typename"))
+        error("$typename is not a valid typename")
     end
     mkdir(directory)
     YAML.write_file(joinpath(directory, META_FILENAME), metadata)
@@ -502,6 +741,29 @@ end
 
 function _assert_valid_name(name::AbstractString, container)
     # container.file.name_validation(container.directory, name)
+end
+
+function _dataset(grp::AbstractGroup, name::AbstractString)
+    Dataset(
+        root_directory = grp.root_directory,
+        parent_path = grp.relative_path,
+        object_name = name,
+        file = grp.file,
+    )
+end
+
+function _assert_data_shape_dtype_match(data, shape::Dims, dtype)
+    if !isnothing(data)
+        sz = size(data)
+        if prod(sz) != prod(shape)
+            error("Provided shape and size(data) do not match: $shape vs $sz")
+        end
+        et = eltype(data)
+        if et != dtype
+            error("Provided dtype and eltype(data) do not match: $dtype vs $et")
+        end
+    end
+    nothing
 end
 
 end

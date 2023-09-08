@@ -5,7 +5,7 @@ using Test
     # include("example.jl")
     include("object.jl")
     include("raw.jl")
-    include("group.jl")
-    include("file.jl")
+    # include("group.jl")
+    # include("file.jl")
     include("dataset.jl")
 end

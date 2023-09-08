@@ -1,14 +1,14 @@
 using Exdir
 using Test
 
-import Exdir
+import Exdir: Object, open_object, ATTRIBUTES_FILENAME, META_FILENAME
 
 include("support.jl")
 
 @testset "object_init" begin
     fx = setup_teardown_folder()
 
-    obj = Exdir.Object(
+    obj = Object(
         root_directory = fx.testdir,
         parent_path = "",
         object_name = "test_object",
@@ -30,21 +30,49 @@ end
 
     grp = create_group(f, "test")
     grp2 = create_group(grp, "test2")
-    Exdir.open_object(grp2.directory)
+    open_object(grp2.directory)
 end
 
-# @testset "object_create" begin
-#     (fx, f) = setup_teardown_file()
+@testset "object_attrs" begin
+    (fx, f) = setup_teardown_file()
 
-#     grp = create_group(f, "test")
+    obj = create_dataset(f, "test_object", shape=(1,))
 
-#     grp2 = create_group(grp, "a")
+    # TODO
 
-#     @test isa(grp, Exdir.Group)
+    cleanup_fixture(fx)
+end
 
-#     grp3 = create_group(grp, "b/")
-#     @test isa(grp3, Exdir.Group)
+@testset "object_meta" begin
+    (fx, f) = setup_teardown_file()
 
-#     cleanup_fixture(fx)
-# end
+    obj = create_dataset(f, "test_object", shape=(1,))
 
+    # TODO
+
+    cleanup_fixture(fx)
+end
+
+@testset "object_directory" begin
+    (fx, f) = setup_teardown_file()
+
+    obj = create_dataset(f, "test_object", shape=(1,))
+
+    @test obj.directory == joinpath(fx.testfile, "test_object")
+    @test obj.attributes_filename == joinpath(fx.testfile, "test_object", ATTRIBUTES_FILENAME)
+    @test obj.meta_filename == joinpath(fx.testfile, "test_object", META_FILENAME)
+
+    cleanup_fixture(fx)
+end
+
+@testset "object_create_raw" begin
+    (fx, f) = setup_teardown_file()
+
+    obj = create_dataset(f, "test_object", shape=(1,))
+    create_raw(obj, "test_raw")
+    @test isdir(joinpath(fx.testfile, "test_object", "test_raw"))
+
+    @test_throws ArgumentError create_raw(obj, "test_raw")
+
+    cleanup_fixture(fx)
+end
