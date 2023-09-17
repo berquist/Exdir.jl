@@ -10,6 +10,7 @@ export
     create_raw,
     delete!,
     exdiropen,
+    IOError,
     is_nonraw_object_directory,
     require_group,
     require_raw,
@@ -85,10 +86,12 @@ function Base.setproperty!(obj::AbstractObject, f::Symbol, v)
 end
 
 function create_raw(obj::AbstractObject, name::AbstractString)
+    # https://github.com/CINPLA/exdir/blob/89c1d34a5ce65fefc09b6fe1c5e8fef68c494e75/exdir/core/exdir_object.py#L238
+    assert_file_open(obj.file)
+    _assert_valid_name(name, obj)
     directory_name = joinpath(obj.directory, name)
     if ispath(directory_name)
-        # TODO
-        throw(ArgumentError("'$(directory_name)' already exists in 'self'"))
+        throw(IOError("'$(directory_name)' already exists in '$obj'"))
     end
     mkdir(directory_name)
     Raw(
@@ -100,6 +103,7 @@ function create_raw(obj::AbstractObject, name::AbstractString)
 end
 
 function require_raw(obj::AbstractObject, name::AbstractString)
+    assert_file_open(obj.file)
     directory_name = joinpath(obj.directory, name)
     if ispath(directory_name)
         if is_nonraw_object_directory(directory_name)
@@ -121,13 +125,23 @@ end
 
 function Base.:(==)(obj::AbstractObject, other)
     # if obj.file.io_mode == OpenMode::FILE_CLOSED
-    false
+    #     return false
+    # end
+    if !isa(obj, AbstractObject)
+        false
+    else
+        obj.relative_path == other.relative_path &&
+            obj.root_directory == other.root_directory
+    end
 end
 
 function Base.print(io::IO, obj::AbstractObject)
-    # if closed
-    # print(io, "<Closed Exdir Group>")
-    print(io, "<Exdir Group '$(obj.directory)' (mode TODO)>")
+    # if obj.file.io_mode == OpenMode.FILE_CLOSED
+    #     msg = "<Closed Exdir Object>"
+    # else
+        msg = "<Exdir Obj '$(obj.directory)' (mode TODO)>"
+    # end
+    print(io, msg)
 end
 
 """
@@ -216,14 +230,26 @@ struct Group <: AbstractGroup
 end
 
 function Base.in(name::AbstractString, grp::AbstractGroup)
-    false
+    # if grp.file.io_mode == OpenMode.FILE_CLOSED
+    #     return false
+    # end
+    if name == "."
+        return true
+    elseif name == ""
+        return false
+    else
+        path = name_to_asserted_group_path(name)
+        directory = joinpath(grp.directory, path)
+        return is_exdir_object(directory)
+    end
 end
 
-function Base.get(grp::AbstractGroup, name::AbstractString)
-    nothing
-end
+# function Base.get(grp::AbstractGroup, name::AbstractString)
+#     nothing
+# end
 
 function Base.getindex(grp::AbstractGroup, name::AbstractString)
+    assert_file_open(grp.file)
     path = name_to_asserted_group_path(name)
     parts = splitpath(path)
     if length(parts) > 1
@@ -278,6 +304,12 @@ function delete!(grp::AbstractGroup, name::AbstractString)
     nothing
 end
 
+struct IOError <: Exception
+    msg::String
+end
+
+Base.showerror(io::IO, e::IOError) = print(io, "IOError: $(e.msg)")
+
 struct File <: AbstractGroup
     root_directory::String
     parent_path::String
@@ -286,7 +318,9 @@ struct File <: AbstractGroup
     relative_path::String
     name::String
 
-    function File(; root_directory, parent_path, object_name, file)
+    user_mode::String
+
+    function File(; root_directory, parent_path, object_name, file, user_mode)
         relative_path = joinpath(parent_path, object_name)
         relative_path = if relative_path == "." "" else relative_path end
         name = "/" * relative_path
@@ -296,7 +330,8 @@ struct File <: AbstractGroup
             object_name,
             file,
             relative_path,
-            name
+            name,
+            user_mode
         )
     end
 
@@ -309,8 +344,29 @@ struct File <: AbstractGroup
     # plugins
 end
 
-function Base.in(name::AbstractString, file::File)
-    false
+function Base.getindex(file::File, name::AbstractString)
+    path = remove_root(name)
+    if length(splitpath(path)) < 1
+        file
+    else
+        Base.getindex(convert(Group, file), path)
+    end
+end
+
+# function Base.in(name::AbstractString, file::File)
+#     false
+# end
+
+# MethodError: Cannot `convert` an object of type Exdir.File to an object of type Exdir.Group
+# Closest candidates are:
+#   convert(::Type{T}, ::T) where T
+function Base.convert(::Type{Group}, file::File)
+    Group(;
+        root_directory = file.root_directory,
+        parent_path = file.parent_path,
+        object_name = file.object_name,
+        file = file.file,
+    )
 end
 
 function Base.iterate(::File)
@@ -321,9 +377,16 @@ function Base.iterate(::File, ::String)
     nothing
 end
 
+function Base.print(io::IO, file::File)
+    msg = "<Exdir File '$(file.directory)' (mode TODO)>"
+    print(io, msg)
+end
+
 function delete!(file::File, name::AbstractString)
     nothing
 end
+
+const EXTENSION = ".exdir"
 
 """
     form_location(directory)
@@ -338,8 +401,8 @@ function form_location(directory::AbstractString)
     else
         directory
     end
-    normalized = if splitext(normalized)[2] != ".exdir"
-        normalized * ".exdir"
+    normalized = if splitext(normalized)[2] != EXTENSION
+        normalized * EXTENSION
     else
         normalized
     end
@@ -357,7 +420,7 @@ function parsemode(mode::AbstractString)
     mode == "r+" ? (writeable=true, create=false, truncate=false) :
     mode == "a" || mode == "a+" ? (writeable=true, create=true, truncate=false) :
     mode == "w" || mode == "w+" ? (writeable=true, create=true, truncate=true) :
-    throw(ArgumentError("invalid open mode: $mode"))
+    throw(DomainError("invalid open mode: $mode"))
 end
 
 """
@@ -371,7 +434,8 @@ Opens an ExDir tree at path `directory`.
 `"a"`/`"a+"`: Open for reading and writing, creating a new file if none exists, but
               preserving the existing file if one is present
 """
-function exdiropen(directory::AbstractString, mode::AbstractString)::Exdir.File
+function exdiropen(directory::AbstractString, mode::AbstractString;
+                   allow_remove=false)::Exdir.File
 
     location = form_location(directory)
     (writeable, create, truncate) = parsemode(mode)
@@ -389,6 +453,10 @@ function exdiropen(directory::AbstractString, mode::AbstractString)::Exdir.File
             if already_exists
                 rm(location, recursive=true)
             end
+        # else
+        #     if allow_remove
+        #         rm(location, recursive=true)
+        #     else
         end
         should_create_directory = true
     end
@@ -398,12 +466,12 @@ function exdiropen(directory::AbstractString, mode::AbstractString)::Exdir.File
         create_object_directory(location, defaultmetadata(FILE_TYPENAME))
     end
 
-    # Exdir.File(location, writeable)
     File(
         root_directory = location,
         parent_path = "",
         object_name = "",
         file = nothing,
+        user_mode = mode
     )
 end
 
@@ -417,6 +485,8 @@ end
 
 function Base.keys(grp::AbstractGroup)
 end
+
+Base.haskey(grp::AbstractGroup, name::AbstractString) = in(name, grp)
 
 function Base.setindex!(attrs::Attribute, value, name::AbstractString)
 end

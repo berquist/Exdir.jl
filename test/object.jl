@@ -39,6 +39,13 @@ end
     obj = create_dataset(f, "test_object", shape=(1,))
 
     # TODO
+    # @test isa(obj.meta, Attribute)
+    # assert obj.attrs.mode.value == 1
+    # obj.attrs = "test value"
+
+    # with (setup_teardown_file[1] / "test_object" / ATTRIBUTES_FILENAME).open("r", encoding="utf-8") as meta_file:
+    #     meta_data = yaml.YAML(typ="safe", pure=True).load(meta_file)
+    #     assert meta_data == "test value"
 
     cleanup_fixture(fx)
 end
@@ -49,6 +56,10 @@ end
     obj = create_dataset(f, "test_object", shape=(1,))
 
     # TODO
+    # @test isa(obj.meta, Attribute)
+    # assert obj.meta.mode == exdir.core.Attribute._Mode.METADATA
+    # with pytest.raises(AttributeError):
+    #     obj.meta = "test value"
 
     cleanup_fixture(fx)
 end
@@ -72,7 +83,9 @@ end
     create_raw(obj, "test_raw")
     @test isdir(joinpath(fx.testfile, "test_object", "test_raw"))
 
-    @test_throws ArgumentError create_raw(obj, "test_raw")
+    # Python exception
+    # RuntimeError: A directory with name (case independent) 'test_raw' already exists  and cannot be made according to the naming rule 'thorough'.
+    @test_throws IOError create_raw(obj, "test_raw")
 
     cleanup_fixture(fx)
 end

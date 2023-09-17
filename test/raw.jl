@@ -25,6 +25,7 @@ include("support.jl")
     cleanup_fixture(fx)
 end
 
+# Simple .create_raw call.
 @testset "raw_create" begin
     (fx, f) = setup_teardown_file()
 
@@ -39,6 +40,7 @@ end
     cleanup_fixture(fx)
 end
 
+# Raw is created if it doesn"t exist.
 @testset "raw_require" begin
     (fx, f) = setup_teardown_file()
 
@@ -61,7 +63,7 @@ end
     f = exdir_tmpfile()
 
     create_raw(f, "test")
-    @test_throws ArgumentError create_raw(f, "test")
+    @test_throws IOError create_raw(f, "test")
 end
 
 @testset "raw_create_dataset" begin
@@ -73,4 +75,3 @@ end
 
     @test ispath(joinpath(f.directory, "group", "dataset", "raw"))
 end
-

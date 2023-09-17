@@ -6,6 +6,20 @@ include("support.jl")
 @testset "group_init" begin
     fx = setup_teardown_folder()
 
+    grp = Group(
+        root_directory = fx.testdir,
+        parent_path = "",
+        object_name = "test_object",
+        file = nothing
+    )
+
+    @test grp.root_directory == fx.testdir
+    @test grp.object_name == "test_object"
+    @test grp.parent_path == ""
+    @test isnothing(grp.file)
+    @test grp.relative_path == "test_object"
+    @test grp.name == "/test_object"
+
     cleanup_fixture(fx)
 end
 
