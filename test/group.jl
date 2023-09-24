@@ -1,12 +1,14 @@
 using Exdir
 using Test
 
+import Exdir
+
 include("support.jl")
 
 @testset "group_init" begin
     fx = setup_teardown_folder()
 
-    grp = Group(
+    grp = Exdir.Group(
         root_directory = fx.testdir,
         parent_path = "",
         object_name = "test_object",
