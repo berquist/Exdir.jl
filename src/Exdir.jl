@@ -292,12 +292,37 @@ function Base.getindex(grp::AbstractGroup, name::AbstractString)
     end
 end
 
-function Base.iterate(grp::AbstractGroup)
-    ()
+mutable struct GroupIteratorState
+    base
+    root
+    current_base
+    next_name
+    itr
+end
+
+# Iterate over all the objects in the group.
+function Base.iterate(grp::AbstractGroup, state=nothing)
+    # assert_file_open(grp.file)
+    if isnothing(state)
+        itr = walkdir(grp.root_directory)
+        # The first object we want to return will be the first element of
+        # `dirs` and not "this" directory (the passed-in group).
+        (root, dirs, files) = first(itr)
+        next_name = first(dirs)
+        state = GroupIteratorState(grp, root, root, next_name, itr)
+    end
+    try
+        (root, dirs, files) = first(state.itr)
+        @assert files == [META_FILENAME]
+        obj = getindex(grp, this_name)
+        (obj, state)
+    catch
+        nothing
+    end
 end
 
 function Base.length(grp::AbstractGroup)
-    0
+    length(collect(grp))
 end
 
 function delete!(grp::AbstractGroup, name::AbstractString)
