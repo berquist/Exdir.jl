@@ -293,7 +293,7 @@ function Base.getindex(grp::AbstractGroup, name::AbstractString)
 end
 
 mutable struct GroupIteratorState
-    base
+    base_grp
     root
     current_base
     next_name
@@ -308,21 +308,31 @@ function Base.iterate(grp::AbstractGroup, state=nothing)
         # The first object we want to return will be the first element of
         # `dirs` and not "this" directory (the passed-in group).
         (root, dirs, files) = first(itr)
-        next_name = first(dirs)
+        if !isempty(dirs)
+            next_name = first(dirs)
+        else
+            return nothing
+        end
         state = GroupIteratorState(grp, root, root, next_name, itr)
     end
-    try
+    # `try` is to attempt getting the next item from the walkdir channel,
+    # which itself follows the iteration protocol.
+    if !isempty(state.itr)
         (root, dirs, files) = first(state.itr)
         @assert files == [META_FILENAME]
-        obj = getindex(grp, this_name)
-        (obj, state)
-    catch
-        nothing
+        obj = getindex(state.base_grp, state.next_name)
+        # TODO state.root = ?
+        # state.current_base
+        state.next_name = first(dirs)
+        return (obj, state)
+    else
+        return nothing
     end
 end
 
 function Base.length(grp::AbstractGroup)
-    length(collect(grp))
+    # length(collect(grp))
+    0
 end
 
 function delete!(grp::AbstractGroup, name::AbstractString)
@@ -392,14 +402,6 @@ function Base.convert(::Type{Group}, file::File)
         object_name = file.object_name,
         file = file.file,
     )
-end
-
-function Base.iterate(::File)
-    ("hello", "world")
-end
-
-function Base.iterate(::File, ::String)
-    nothing
 end
 
 function Base.print(io::IO, file::File)
