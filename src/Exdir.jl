@@ -381,30 +381,18 @@ end
 #     end
 # end
 
-function Base.iterate(grp::AbstractGroup)
-    itr = walkdir(grp.root_directory)
-    (root, dirs, files) = first(itr)
-    @assert root == grp.root_directory
-    @assert files == [META_FILENAME]
-    if isempty(dirs)
-        nothing
-    else
-        (dirs[1], dirs[2:end])
+function Base.iterate(grp::AbstractGroup, dirs=nothing)
+    if isnothing(dirs)
+        grp_root = joinpath(grp.root_directory, grp.relative_path)
+        itr = walkdir(grp_root)
+        (root, dirs, files) = first(itr)
+        @assert root == grp_root
+        @assert files == [META_FILENAME]
     end
+    isempty(dirs) ? nothing : (dirs[1], dirs[2:end])
 end
 
-function Base.iterate(grp::AbstractGroup, dirs)
-    if isempty(dirs)
-        nothing
-    else
-        (dirs[1], dirs[2:end])
-    end
-end
-
-function Base.length(grp::AbstractGroup)
-    # length(collect(grp))
-    0
-end
+Base.length(grp::AbstractGroup) = length(first(walkdir(joinpath(grp.root_directory, grp.relative_path)))[2])
 
 function delete!(grp::AbstractGroup, name::AbstractString)
     nothing
