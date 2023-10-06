@@ -248,6 +248,24 @@ end
 #     nothing
 # end
 
+function unsafe_dataset(grp::AbstractGroup, name)
+    Dataset(
+        root_directory = grp.root_directory,
+        parent_path = grp.relative_path,
+        object_name = name,
+        file = grp.file
+    )
+end
+
+function unsafe_group(grp::AbstractGroup, name)
+    Group(
+        root_directory = grp.root_directory,
+        parent_path = grp.relative_path,
+        object_name = name,
+        file = grp.file
+    )
+end
+
 function Base.getindex(grp::AbstractGroup, name::AbstractString)
     assert_file_open(grp.file)
     path = name_to_asserted_group_path(name)
@@ -283,50 +301,103 @@ function Base.getindex(grp::AbstractGroup, name::AbstractString)
     meta_data = YAML.load_file(meta_filename)
     typename = meta_data[EXDIR_METANAME][TYPE_METANAME]
     if typename == DATASET_TYPENAME
-        return _dataset(grp, name)
+        return unsafe_dataset(grp, name)
     elseif typename == GROUP_TYPENAME
-        return _group(grp, name)
+        return unsafe_group(grp, name)
     else
         error_string = "Object $name has data type $typename.\nWe cannot open objects of this type."
         throw(ArgumentError(error_string))
     end
 end
 
-mutable struct GroupIteratorState
+struct GroupIteratorState
+    "Keep track of the base Group originally passed in"
     base_grp
+    "Unused"
     root
+    "Unused"
     current_base
-    next_name
+    "The current object (group, dset) name we are looking at"
+    current_obj_name
+    "Result of collect(walkdir(grp.root_directory))"
     itr
+    "Current index into itr"
+    index
+    "Fully-typed object"
+    obj
 end
 
-# Iterate over all the objects in the group.
-function Base.iterate(grp::AbstractGroup, state=nothing)
-    # assert_file_open(grp.file)
-    if isnothing(state)
-        itr = walkdir(grp.root_directory)
-        # The first object we want to return will be the first element of
-        # `dirs` and not "this" directory (the passed-in group).
-        (root, dirs, files) = first(itr)
-        if !isempty(dirs)
-            next_name = first(dirs)
-        else
-            return nothing
-        end
-        state = GroupIteratorState(grp, root, root, next_name, itr)
-    end
-    # `try` is to attempt getting the next item from the walkdir channel,
-    # which itself follows the iteration protocol.
-    if !isempty(state.itr)
-        (root, dirs, files) = first(state.itr)
-        @assert files == [META_FILENAME]
-        obj = getindex(state.base_grp, state.next_name)
-        # TODO state.root = ?
-        # state.current_base
-        state.next_name = first(dirs)
-        return (obj, state)
+# This is work on fully recursive iteration.
+
+# # Iterate over all the objects in the group.
+# function Base.iterate(grp::AbstractGroup)
+#     itr = collect(walkdir(grp.root_directory))
+#     # "This" directory (the passed-in group) will always be the first result
+#     # and we want to ignore it.
+#     if length(itr) < 2
+#         return nothing
+#     end
+#     index = 2
+#     (root, dirs, files) = itr[index]
+#     @assert startswith(root, grp.root_directory)
+#     @assert files == [META_FILENAME]
+#     len_prefix = length(grp.root_directory)
+#     current_obj_name = root[len_prefix + 1 : end]
+#     state = GroupIteratorState(
+#         grp,
+#         root,
+#         root,
+#         current_obj_name,
+#         itr,
+#         index + 1,
+#         getindex(grp, current_obj_name)
+#     )
+#     item = state.obj.name
+#     (item, state)
+# end
+
+# # Iterate over all the objects in the group.
+# function Base.iterate(grp::AbstractGroup, state)
+#     # assert_file_open(grp.file)
+#     if state.index <= length(state.itr)
+#         (root, dirs, files) = state.itr[state.index]
+#         @assert startswith(root, grp.root_directory)
+#         @assert files == [META_FILENAME]
+#         len_prefix = length(grp.root_directory)
+#         current_obj_name = root[len_prefix + 1 : end]
+#         new_state = GroupIteratorState(
+#             state.base_grp,
+#             state.root,
+#             state.root,
+#             current_obj_name,
+#             state.itr,
+#             state.index + 1,
+#             getindex(state.base_grp, current_obj_name)
+#         )
+#         item = new_state.obj.name
+#         (item, new_state)
+#     else
+#         nothing
+#     end
+# end
+
+function Base.iterate(grp::AbstractGroup)
+    itr = walkdir(grp.root_directory)
+    (root, dirs, files) = first(itr)
+    @assert root == grp.root_directory
+    @assert files == [META_FILENAME]
+    if isempty(dirs)
+        nothing
     else
-        return nothing
+        (dirs[1], dirs[2:end])
+    end
+end
+
+function Base.iterate(grp::AbstractGroup, dirs)
+    if isempty(dirs)
+        nothing
+    else
+        (dirs[1], dirs[2:end])
     end
 end
 
