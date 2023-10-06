@@ -47,7 +47,7 @@ end
 
     grp2 = create_group(grp, "a")
 
-    grp3 = create_group(grp2, "b")
+    grp3 = create_group(grp, "b")
 
     @test length(grp) == 2
     @test length(grp2) == 0
