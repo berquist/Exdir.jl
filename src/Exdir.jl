@@ -8,7 +8,6 @@ export
     create_dataset,
     create_group,
     create_raw,
-    delete!,
     exdiropen,
     IOError,
     is_nonraw_object_directory,
@@ -36,8 +35,7 @@ struct Object <: AbstractObject
     name::String
 
     function Object(; root_directory, parent_path, object_name, file)
-        relative_path = joinpath(parent_path, object_name)
-        relative_path = if relative_path == "." "" else relative_path end
+        relative_path = form_relative_path(parent_path, object_name)
         name = "/" * relative_path
         new(
             root_directory,
@@ -159,8 +157,7 @@ struct Raw <: AbstractObject
     name::String
 
     function Raw(; root_directory, parent_path, object_name, file=nothing)
-        relative_path = joinpath(parent_path, object_name)
-        relative_path = if relative_path == "." "" else relative_path end
+        relative_path = form_relative_path(parent_path, object_name)
         name = "/" * relative_path
         new(
             root_directory,
@@ -215,8 +212,7 @@ struct Group <: AbstractGroup
     name::String
 
     function Group(; root_directory, parent_path, object_name, file=nothing)
-        relative_path = joinpath(parent_path, object_name)
-        relative_path = if relative_path == "." "" else relative_path end
+        relative_path = form_relative_path(parent_path, object_name)
         name = "/" * relative_path
         new(
             root_directory,
@@ -398,7 +394,7 @@ end
 
 Base.length(grp::AbstractGroup) = length(first(walkdir(joinpath(grp.root_directory, grp.relative_path)))[2])
 
-function delete!(grp::AbstractGroup, name::AbstractString)
+function Base.delete!(grp::AbstractGroup, name::AbstractString)
     nothing
 end
 
@@ -419,8 +415,7 @@ struct File <: AbstractGroup
     user_mode::String
 
     function File(; root_directory, parent_path, object_name, file, user_mode)
-        relative_path = joinpath(parent_path, object_name)
-        relative_path = if relative_path == "." "" else relative_path end
+        relative_path = form_relative_path(parent_path, object_name)
         name = "/" * relative_path
         new(
             root_directory,
@@ -472,7 +467,7 @@ function Base.print(io::IO, file::File)
     print(io, msg)
 end
 
-function delete!(file::File, name::AbstractString)
+function Base.delete!(file::File, name::AbstractString)
     nothing
 end
 
@@ -645,41 +640,17 @@ end
 
 
 """
-function create_group(file::File, name::AbstractString)
-    path = remove_root(name)
-    _create_group(file, name)
-end
+create_group(file::File, name::AbstractString) = _create_group(file, remove_root(name))
 
 """
     create_group(grp, name)
 
 
 """
-function create_group(grp::Group, name::AbstractString)
-    _create_group(grp, name)
-end
+create_group(grp::Group, name::AbstractString) = _create_group(grp, name)
 
-# """
-#     require_group(file, name)
-
-
-# """
-# function require_group(file::File, name::AbstractString)
-#     path = remove_root(name)
-#     Group(
-#         root_directory =,
-#         parent_path = ,
-#         object_name = ,
-#         file =,
-#     )
-# end
-
-"""
-    require_group(grp, name)
-
-
-"""
-function require_group(grp::Group, name::AbstractString)
+function _require_group(grp, name::AbstractString)
+    # assert_file_open
     path = name_to_asserted_group_path(name)
 
     if length(splitpath(path)) > 1
@@ -703,6 +674,21 @@ function require_group(grp::Group, name::AbstractString)
 
     create_group(grp, name)
 end
+
+"""
+    require_group(file, name)
+
+
+"""
+require_group(file::File, name::AbstractString) = _require_group(file, remove_root(name))
+
+"""
+    require_group(grp, name)
+
+
+"""
+require_group(grp::Group, name::AbstractString) = _require_group(grp, name)
+
 
 function Base.write(dset::Dataset, data)
     error("unimplemented")

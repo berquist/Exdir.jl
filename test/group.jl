@@ -25,6 +25,26 @@ include("support.jl")
     cleanup_fixture(fx)
 end
 
+@testset "group_init_trailing" begin
+    fx = setup_teardown_folder()
+
+    grp = Exdir.Group(
+        root_directory = fx.testdir,
+        parent_path = "",
+        object_name = "test_object2/",
+        file = nothing
+    )
+
+    @test grp.root_directory == fx.testdir
+    @test grp.object_name == "test_object2/"
+    @test grp.parent_path == ""
+    @test isnothing(grp.file)
+    @test grp.relative_path == "test_object2"
+    @test grp.name == "/test_object2"
+
+    cleanup_fixture(fx)
+end
+
 @testset "group_create" begin
     (fx, f) = setup_teardown_file()
 
