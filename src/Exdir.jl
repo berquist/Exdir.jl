@@ -244,9 +244,13 @@ function Base.in(name::AbstractString, grp::AbstractGroup)
     end
 end
 
-# function Base.get(grp::AbstractGroup, name::AbstractString)
-#     nothing
-# end
+function Base.get(grp::AbstractGroup, name::AbstractString, default=nothing)
+    if name in grp
+        grp[name]
+    else
+        default
+    end
+end
 
 function unsafe_dataset(grp::AbstractGroup, name)
     Dataset(
