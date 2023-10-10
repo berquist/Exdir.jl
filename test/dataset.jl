@@ -1,6 +1,8 @@
 using Exdir
 using Test
 
+@testset "dataset" begin
+
 # Create a scalar dataset.
 @testset "dataset_create_scalar" begin
     # TODO fixture
@@ -68,3 +70,5 @@ end
 # @testset "dataset_intermediate_group" begin
 
 # end
+
+end
