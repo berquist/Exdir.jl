@@ -93,6 +93,7 @@ end
     cleanup_fixture(fx)
 end
 
+# Starting .create_group argument with /.
 @testset "group_create_absolute" begin
     (fx, f) = setup_teardown_file()
 
@@ -111,6 +112,7 @@ end
 end
 
 @testset "group_create_intermediate" begin
+    # intermediate groups can be created automatically.
     (fx, f) = setup_teardown_file()
 
     grp = create_group(f, "test")
@@ -129,6 +131,7 @@ end
     cleanup_fixture(fx)
 end
 
+# Name conflic causes group creation to fail with ArgumentError.
 @testset "group_create_exception" begin
     (fx, f) = setup_teardown_file()
 
@@ -142,6 +145,8 @@ end
     cleanup_fixture(fx)
 end
 
+# Feature: Groups can be auto-created, or opened via .require_group
+# Existing group is opened and returned.
 @testset "group_open_existing" begin
     (fx, f) = setup_teardown_file()
 
@@ -158,19 +163,47 @@ end
     cleanup_fixture(fx)
 end
 
+# Group is created if it doesn't exist.
 @testset "group_create" begin
     (fx, f) = setup_teardown_file()
 
+    grp = create_group(f, "test")
+
+    grp2 = require_group(grp, "foo")
+    @test isa(grp2, Exdir.Group)
+    @test grp2.name == "/test/foo"
+
     cleanup_fixture(fx)
 end
 
+# Opening conflicting object results in TODOError.
 @testset "group_require_exception" begin
     (fx, f) = setup_teardown_file()
 
+    grp = create_group(f, "test")
+
+    # grp.create_dataset("foo", (1,))
+
+    # with pytest.raises(TypeError):
+    #     grp.require_group("foo")
+
     cleanup_fixture(fx)
 end
 
-# set_item_intermediatex
+# TODO
+# @testset "group_set_item_intermediate" begin
+#     (_, f) = setup_teardown_file()
+
+#     group1 = create_group(f, "group1")
+#     group2 = create_group(group1, "group2")
+#     group3 = create_group(group2, "group3")
+#     f["group1/group2/group3/dataset"] = [1, 2, 3]
+
+#     @test_ isa(f["group1/group2/group3/dataset"], Exdir.Dataset)
+#     @test f["group1/group2/group3/dataset"].data == [1, 2, 3]
+
+#     cleanup_fixture(fx)
+# end
 
 @testset "group_delete" begin
     (fx, f) = setup_teardown_file()
@@ -181,6 +214,8 @@ end
     @test in("foo", grp)
     delete!(grp, "foo")
     @test !in("foo", grp)
+
+    # alias delete_object as in HDF5.jl
 
     create_group(grp, "bar")
 
@@ -200,6 +235,8 @@ end
     delete!(f, "test")
     @test !in("test", f)
 
+    # alias delete_object as in HDF5.jl
+
     create_group(f, "test2")
 
     @test in("test2", f)
@@ -216,25 +253,28 @@ end
     create_raw(grp, "foo")
 
     @test in("foo", grp)
-    # Julia dicts
     delete!(grp, "foo")
     @test !in("foo", grp)
+
+    # alias delete_object as in HDF5.jl
 
     create_raw(grp, "bar")
 
     @test in("bar", grp)
-    # HDF5.jl
     delete_object(grp, "bar")
     @test !in("bar", grp)
 
     cleanup_fixture(fx)
 end
 
+# Deleting non-existent object raises TODOError
 @testset "group_nonexisting" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
-    match = "No such object: 'foo' in path *"
+    grp = create_group(f, "test")
+
+    # @test_throws "KeyError: No such object: 'foo' in path *" delete!(grp, "foo")
+    @test_throws KeyError delete!(grp, "foo")
 
     cleanup_fixture(fx)
 end

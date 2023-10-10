@@ -8,6 +8,7 @@ export
     create_dataset,
     create_group,
     create_raw,
+    delete_object,
     exdiropen,
     IOError,
     is_nonraw_object_directory,
@@ -395,12 +396,16 @@ end
 Base.length(grp::AbstractGroup) = length(first(walkdir(joinpath(grp.root_directory, grp.relative_path)))[2])
 
 function Base.delete!(grp::AbstractGroup, name::AbstractString)
-    @assert name in grp
+    if !in(name, grp)
+        # throw(KeyError("No such object '$(name)' in path '$(grp.name)'"))
+        throw(KeyError(name))
+    end
     @assert !isabspath(name)
     path = joinpath(grp.root_directory, grp.relative_path, name)
     @assert isdir(path)
     rm(path, recursive=true)
 end
+delete_object(grp::AbstractGroup, name::AbstractString) = delete!(grp, name)
 
 struct IOError <: Exception
     msg::String
@@ -568,10 +573,9 @@ function Base.close(file::File)
     nothing
 end
 
-function Base.keys(grp::AbstractGroup)
-end
-
+Base.keys(grp::AbstractGroup) = collect(grp)
 Base.haskey(grp::AbstractGroup, name::AbstractString) = in(name, grp)
+Base.values(grp::AbstractGroup) = [getindex(grp, key) for key in keys(grp)]
 
 function Base.setindex!(attrs::Attribute, value, name::AbstractString)
 end
