@@ -21,6 +21,8 @@ function remove(name)
     end
 end
 
+@testset "file" begin
+
 @testset "form_location" begin
     @test form_location("/hello.exdir") == "/hello.exdir"
     @test form_location("/hello") == "/hello.exdir"
@@ -478,3 +480,5 @@ end
 #         assert isinstance(f, File)
 
 #     assert not f
+
+end

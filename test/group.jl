@@ -5,6 +5,8 @@ import Exdir
 
 include("support.jl")
 
+@testset "group" begin
+
 @testset "group_init" begin
     fx = setup_teardown_folder()
 
@@ -509,4 +511,6 @@ end
     @test grp == grp_parent
 
     cleanup_fixture(fx)
+end
+
 end
