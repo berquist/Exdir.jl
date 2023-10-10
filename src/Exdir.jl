@@ -397,7 +397,7 @@ Base.length(grp::AbstractGroup) = length(first(walkdir(joinpath(grp.root_directo
 function Base.delete!(grp::AbstractGroup, name::AbstractString)
     @assert name in grp
     @assert !isabspath(name)
-    path = joinpath(grp.root_directory, name)
+    path = joinpath(grp.root_directory, grp.relative_path, name)
     @assert isdir(path)
     rm(path, recursive=true)
 end
