@@ -395,7 +395,11 @@ end
 Base.length(grp::AbstractGroup) = length(first(walkdir(joinpath(grp.root_directory, grp.relative_path)))[2])
 
 function Base.delete!(grp::AbstractGroup, name::AbstractString)
-    nothing
+    @assert name in grp
+    @assert !isabspath(name)
+    path = joinpath(grp.root_directory, name)
+    @assert isdir(path)
+    rm(path, recursive=true)
 end
 
 struct IOError <: Exception
@@ -465,10 +469,6 @@ end
 function Base.print(io::IO, file::File)
     msg = "<Exdir File '$(file.directory)' (mode TODO)>"
     print(io, msg)
-end
-
-function Base.delete!(file::File, name::AbstractString)
-    nothing
 end
 
 const EXTENSION = ".exdir"
