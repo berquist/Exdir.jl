@@ -179,7 +179,9 @@ struct Dataset <: AbstractObject
     relative_path::String
     name::String
 
-    function Dataset(; root_directory, parent_path, object_name, file)
+    data
+
+    function Dataset(; root_directory, parent_path, object_name, file, data)
         relative_path = joinpath(parent_path, object_name)
         relative_path = if relative_path == "." "" else relative_path end
         name = "/" * relative_path
@@ -189,20 +191,16 @@ struct Dataset <: AbstractObject
             object_name,
             file,
             relative_path,
-            name
+            name,
+            data
         )
     end
 end
 
-function Base.iterate(dset::Dataset)
-    ()
-end
-
+Base.iterate(dset::Dataset) = iterate(dset.data)
+Base.iterate(dset::Dataset, state) = iterate(dset.data, state)
 Base.length(dset::Dataset) = prod(size(dset))
-
-function Base.size(dset::Dataset)
-    ()
-end
+Base.size(dset::Dataset) = size(dset.data)
 
 struct Group <: AbstractGroup
     root_directory::String
@@ -763,7 +761,8 @@ function create_dataset(grp::AbstractGroup, name::AbstractString;
         root_directory = grp.root_directory,
         parent_path = grp.relative_path,
         object_name = name,
-        file = grp.file
+        file = grp.file,
+        data = prepared_data
     )
     # dataset._reset_data(prepared_data, attrs, None)  # meta already set above
     dataset
