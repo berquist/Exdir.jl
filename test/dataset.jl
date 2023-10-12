@@ -232,7 +232,8 @@ end
     cleanup_fixture(fx)
 end
 
-@testset "dataset_compound" begin
+# Fill value works with compound types.
+@testset "dataset_compound_fill" begin
     (fx, f) = setup_teardown_file()
 
     # TODO
@@ -240,22 +241,31 @@ end
     cleanup_fixture(fx)
 end
 
+# Bogus fill value raises TypeError.
 @testset "dataset_exc" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    @test_throws TypeError create_dataset(grp, "foo"; shape=(10,), dtype=Float32, fillvalue=Dict("a" => 2))
 
     cleanup_fixture(fx)
 end
 
+# Assignment of fixed-length byte string produces a fixed-length ASCII dataset
 @testset "dataset_string" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; data="string")
+    # TODO assert dset.data == "string"
 
     cleanup_fixture(fx)
 end
 
+# Feature: Dataset dtype is available as .dtype property
+# Retrieve dtype from dataset.
 @testset "dataset_dtype" begin
     (fx, f) = setup_teardown_file()
 
