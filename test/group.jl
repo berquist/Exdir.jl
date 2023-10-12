@@ -451,10 +451,13 @@ end
     grpd = create_group(grp, "d")
     grpc = create_group(grp, "c")
 
-    # TODO
-    # for i, (key, value) in enumerate(grp.items()):
-    #     assert key == names[i]
-    #     assert value == groups[i]
+    names = ["a", "b", "c", "d"]
+    groups = [grpa, grpb, grpc, grpd]
+
+    for (i, (k, v)) in enumerate(pairs(grp))
+        @test k == names[i]
+        @test v == groups[i]
+    end
 
     cleanup_fixture(fx)
 end
