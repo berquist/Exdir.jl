@@ -137,55 +137,97 @@ end
 @testset "dataset_create" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    dset = require_dataset(grp, "foo"; shape=(10, 3))
+    @test isa(dset, Exdir.Dataset)
+    @test size(dset) == (10, 3)
+
+    dset2 = require_dataset(grp, "bar"; data=(3, 10))
+    dset3 = require_dataset(grp, "bar"; data=(4, 11))
+    @test isa(dset2, Exdir.Dataset)
+    @test dset2[:] == (3, 10)
+    @test dset3[:] == (3, 10)
+    @test dset2 == dset3
 
     cleanup_fixture(fx)
 end
 
+# require_dataset yields existing dataset.
 @testset "dataset_create_existing" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    dset = require_dataset(grp, "foo"; shape=(10, 3), dtype=Float32)
+    dset2 = require_dataset(grp, "foo"; shape=(10, 3), dtype=Float32)
+
+    @test dset == dset2
 
     cleanup_fixture(fx)
 end
 
+# require_dataset with shape conflict yields TypeError.
 @testset "dataset_shape_conflict" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    create_dataset(grp, "foo"; shape=(10, 3))
+    @test_throws TypeError require_dataset(grp, "foo"; shape=(10, 4))
 
     cleanup_fixture(fx)
 end
 
+# require_dataset with object type conflict yields TypeError.
 @testset "dataset_type_conflict" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    create_group(grp, "foo")
+    @test_throws TypeError require_dataset(grp, "foo"; shape=(10, 3))
 
     cleanup_fixture(fx)
 end
 
+# require_dataset with dtype conflict (strict mode) yields TypeError.
 @testset "dataset_dtype_conflict" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    create_dataset(grp, "foo"; shape=(10, 3), dtype=Float64)
+    @test_throws TypeError require_dataset(grp, "foo"; shape=(10, 3), dtype=UInt8)
 
     cleanup_fixture(fx)
 end
 
+# require_dataset with convertible type succeeds (non-strict mode)-
 @testset "dataset_dtype_close" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; shape=(10, 3), dtype=Int32)
+    dset2 = create_dataset(grp, "foo"; shape=(10, 3), dtype=Int16, exact=false)
+    @test dset == dset2
+    # TODO look at dset2.dtype?
+    @test eltype(dset2) == Int32
 
     cleanup_fixture(fx)
 end
 
+# Feature: Datasets can be created with fill value
+# Fill value is reflected in dataset contents.
 @testset "dataset_create_fillval" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; shape=(10,), fillvalue=4.0)
+    @test dset[1] == 4.0
+    @test dset[8] == 4.0
 
     cleanup_fixture(fx)
 end
