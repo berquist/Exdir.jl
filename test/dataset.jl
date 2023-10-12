@@ -11,6 +11,7 @@ using Test
 
     dset = create_dataset(grp, "foo"; shape=())
     @test size(dset) == ()
+    # TODO
     # @test collect(dset) == 0
 
     cleanup_fixture(fx)
@@ -102,22 +103,37 @@ end
     cleanup_fixture(fx)
 end
 
+# Create dataset with missing intermediate groups.
 @testset "dataset_intermediate_group" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    # Trying to create intermediate groups that are absolute should fail just
+    # like when creating them on groups.
+    @test_throws NotImplementedError create_dataset(f, "/foo/bar/baz"; shape=(10, 10), dtype=Int32)
+
+    ds = create_dataset(f, "foo/bar/baz"; shape=(10, 10), dtype=Int32)
+    @test isa(ds, Exdir.Dataset)
+    @test "/foo/bar/baz" in f
 
     cleanup_fixture(fx)
 end
 
+# Create from existing data, and make it fit a new shape.
 @testset "dataset_reshape" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    data = collect(Float64, 1:30)
+    dset = create_dataset(grp, "foo"; shape=(10, 3), data=data)
+    @test size(dset) == (10, 3)
+    @test dset.data == reshape(data, (10, 3))
 
     cleanup_fixture(fx)
 end
 
+# Feature: Datasets can be created only if they don't exist in the file
+# Create new dataset with no conflicts.
 @testset "dataset_create" begin
     (fx, f) = setup_teardown_file()
 
