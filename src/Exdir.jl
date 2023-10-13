@@ -12,6 +12,7 @@ export
     exdiropen,
     IOError,
     is_nonraw_object_directory,
+    require_dataset,
     require_group,
     require_raw,
     setattrs!
@@ -182,8 +183,7 @@ struct Dataset <: AbstractObject
     data
 
     function Dataset(; root_directory, parent_path, object_name, file, data)
-        relative_path = joinpath(parent_path, object_name)
-        relative_path = if relative_path == "." "" else relative_path end
+        relative_path = form_relative_path(parent_path, object_name)
         name = "/" * relative_path
         new(
             root_directory,
@@ -202,6 +202,8 @@ Base.iterate(dset::Dataset) = iterate(dset.data)
 Base.iterate(dset::Dataset, state) = iterate(dset.data, state)
 Base.length(dset::Dataset) = prod(size(dset))
 Base.size(dset::Dataset) = size(dset.data)
+Base.getindex(dset::Dataset, inds...) = getindex(dset.data, inds...)
+Base.eltype(dset::Dataset) = eltype(dset.data)
 
 struct Group <: AbstractGroup
     root_directory::String
@@ -771,21 +773,70 @@ function create_dataset(grp::AbstractGroup, name::AbstractString;
     dataset
 end
 
-# function create_dataset(grp::AbstractGroup, name::AbstractString;
-#                         shape::Dims,
-#                         dtype::DataType)
-#     create_dataset(grp, name; shape=shape, dtype=dtype, data=nothing)
-# end
+function require_dataset(grp::AbstractGroup, name::AbstractString;
+                         shape=nothing,
+                         dtype=nothing,
+                         exact::Bool=false,
+                         data=nothing,
+                         fillvalue=nothing)
+    assert_file_open(grp.file)
+    if !in(name, grp)
+        return create_dataset(grp, name,
+                              shape=shape, dtype=dtype, data=data, fillvalue=fillvalue)
+    end
 
-# function create_dataset(grp::AbstractGroup, name::AbstractString;
-#                         data)
-#     create_dataset(grp, name; shape=size(data), dtype=eltype(data), data=data)
-# end
+    current_object = grp[name]
 
-# function create_dataset(grp::AbstractGroup, name::AbstractString;
-#                         shape::Dims)
-#     create_dataset(grp, name; shape=shape, dtype=Float64, data=nothing)
-# end
+    if !isa(current_object, Dataset)
+        throw(
+            TypeError(
+                require_dataset,
+                "Incompatible object already exists",
+                Dataset,
+                typeof(current_object)
+            )
+        )
+    end
+
+    (data, attrs, meta) = _prepare_write(data, attrs=Dict(), meta=Dict())
+
+    # TODO verify proper attributes
+
+    _assert_data_shape_dtype_match(data, shape, dtype)
+    (shape, dtype) = _data_to_shape_and_dtype(data, shape, dtype)
+
+    shape_exist = size(current_object)
+    if shape != shape_exist
+        throw(
+            DimensionMismatch(
+                "Shapes do not match: existing $(shape_exist) vs. new $(shape)"
+            )
+        )
+    end
+
+    dtype_exist = eltype(current_object)
+    if dtype != dtype_exist
+        if exact
+            throw(
+                TypeError(
+                    require_dataset,
+                    "Datatypes do not exactly match",
+                    dtype_exist,
+                    dtype
+                )
+            )
+            # if not np.can_cast(dtype, current_object.dtype):
+            #     raise TypeError(
+            #         "Cannot safely cast from {} to {}".format(
+            #             dtype,
+            #             current_object.dtype
+            #         )
+            #     )
+        end
+    end
+
+    current_object
+end
 
 function root_directory(path::AbstractString)
     # https://github.com/CINPLA/exdir/blob/89c1d34a5ce65fefc09b6fe1c5e8fef68c494e75/exdir/core/exdir_object.py#L128
