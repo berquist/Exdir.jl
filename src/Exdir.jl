@@ -197,6 +197,7 @@ struct Dataset <: AbstractObject
     end
 end
 
+Base.collect(dset::Dataset) = collect(dset.data)
 Base.iterate(dset::Dataset) = iterate(dset.data)
 Base.iterate(dset::Dataset, state) = iterate(dset.data, state)
 Base.length(dset::Dataset) = prod(size(dset))
@@ -710,7 +711,8 @@ end
 function create_dataset(grp::AbstractGroup, name::AbstractString;
                         shape=nothing,
                         dtype=nothing,
-                        data=nothing)
+                        data=nothing,
+                        fillvalue=nothing)
     # https://github.com/CINPLA/exdir/blob/89c1d34a5ce65fefc09b6fe1c5e8fef68c494e75/exdir/core/group.py#L72
     path = name_to_asserted_group_path(name)
 
@@ -718,13 +720,13 @@ function create_dataset(grp::AbstractGroup, name::AbstractString;
         (parent, pname) = splitdir(path)
         subgroup = require_group(grp, parent)
         return create_dataset(subgroup, pname,
-                              shape=shape, dtype=dtype, data=data)
+                              shape=shape, dtype=dtype, data=data, fillvalue=fillvalue)
     end
 
     _assert_valid_name(name, grp)
 
     if isnothing(data) && isnothing(shape)
-        error("Cannot create dataset. Missing shape or data keyword.")
+        throw(ArgumentError("Cannot create dataset. Missing shape or data keyword."))
     end
 
     (prepared_data, attrs, meta) = _prepare_write(
@@ -745,8 +747,9 @@ function create_dataset(grp::AbstractGroup, name::AbstractString;
         if isnothing(shape)
             prepared_data = nothing
         else
-            # TODO fillvalue as kwarg
-            fillvalue = 0.0
+            if isnothing(fillvalue)
+                fillvalue = 0.0
+            end
             prepared_data = fill(dtype(fillvalue), shape)
         end
     end

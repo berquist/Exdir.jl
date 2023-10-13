@@ -58,11 +58,11 @@ end
     cleanup_fixture(fx)
 end
 
-# Missing shape raises TypeError.
+# Missing shape raises TypeError in Python, ArgumentError in Julia.
 @testset "dataset_missing_shape" begin
     (fx, f) = setup_teardown_file()
 
-    @test_throws TypeError create_dataset(f, "foo")
+    @test_throws ArgumentError create_dataset(f, "foo")
 
     cleanup_fixture(fx)
 end
@@ -84,7 +84,7 @@ end
     grp = create_group(f, "test")
 
     data = ones()
-    dset = create_dataset("foo"; data=data)
+    dset = create_dataset(grp, "foo"; data=data)
     @test size(dset) == size(data)
 
     cleanup_fixture(fx)
@@ -97,7 +97,7 @@ end
     grp = create_group(f, "test")
 
     data = ones(63)
-    dset = create_dataset("foo"; data=data)
+    dset = create_dataset(grp, "foo"; data=data)
     @test size(dset) == size(data)
 
     cleanup_fixture(fx)
