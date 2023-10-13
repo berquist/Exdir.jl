@@ -259,25 +259,34 @@ end
     grp = create_group(f, "test")
 
     dset = create_dataset(grp, "foo"; data="string")
-    # TODO assert dset.data == "string"
+    @test dset.data == "string"
 
     cleanup_fixture(fx)
 end
 
-# Feature: Dataset dtype is available as .dtype property
+# Feature: Dataset dtype is available as .dtype property in Python, eltype in Julia
 # Retrieve dtype from dataset.
 @testset "dataset_dtype" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; shape=(5,), dtype=UInt8)
+    @test eltype(dset) == UInt8
 
     cleanup_fixture(fx)
 end
 
+# Feature: Size of first axis is available via Python's len;
+# For Julia, size(...) gives the full shape and length(...) gives the total number of elements.
 @testset "dataset_len" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; shape=(312, 15))
+    @test size(dset) == (312, 15)
+    @test length(dset) == 312 * 15
 
     cleanup_fixture(fx)
 end
@@ -285,15 +294,31 @@ end
 @testset "dataset_len_scalar" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; data=1)
+    @test size(dset) == ()
+    @test length(dset) == 1
 
     cleanup_fixture(fx)
 end
 
+# Feature: Iterating over a dataset yields rows in Python, which is idiomatic
+# for NumPy, but yields scalars in Julia.
 @testset "dataset_iter" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    dtype = Float64
+    data = reshape(collect(dtype, 1:30), (10, 3))
+    dset = create_dataset(grp, "foo"; data=data)
+    for (x, y) in zip(dset, data)
+        @test isa(x, dtype)
+        @test length(x) == 1
+        @test size(x) == ()
+        @test x == y
+    end
 
     cleanup_fixture(fx)
 end
