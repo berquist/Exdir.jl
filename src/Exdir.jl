@@ -456,9 +456,7 @@ function Base.getindex(file::File, name::AbstractString)
     end
 end
 
-# function Base.in(name::AbstractString, file::File)
-#     false
-# end
+Base.in(name::AbstractString, file::File) = in(remove_root(name), convert(Group, file))
 
 # MethodError: Cannot `convert` an object of type Exdir.File to an object of type Exdir.Group
 # Closest candidates are:
