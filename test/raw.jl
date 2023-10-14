@@ -1,7 +1,7 @@
 using Exdir
 using Test
 
-import Exdir
+import Exdir: IOError
 
 include("support.jl")
 

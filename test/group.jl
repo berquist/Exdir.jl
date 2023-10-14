@@ -1,7 +1,7 @@
 using Exdir
 using Test
 
-import Exdir
+import Exdir: NotImplementedError
 
 include("support.jl")
 
@@ -101,7 +101,7 @@ end
 
     grp = create_group(f, "/a")
 
-    @test_throws ArgumentError create_group(grp, "/b")
+    @test_throws NotImplementedError create_group(grp, "/b")
 
     cleanup_fixture(fx)
 end
@@ -313,7 +313,7 @@ end
     @test grp2.name == grp4.name
     @test grp2 == grp4
 
-    @test_throws ArgumentError grp["/test"]
+    @test_throws NotImplementedError grp["/test"]
 
     cleanup_fixture(fx)
 end
@@ -350,9 +350,7 @@ end
     @test in("b", grp)
     @test !in("c", grp)
 
-    # TODO
-    # @test_throws ArgumentError in("/b", grp)
-    @test_throws ArgumentError "/b" in grp
+    @test_throws NotImplementedError "/b" in grp
 
     cleanup_fixture(fx)
 end
@@ -393,7 +391,7 @@ end
 
     grp = create_group(f, "test")
 
-    @test_throws ArgumentError "/" in grp
+    @test_throws NotImplementedError "/" in grp
 
     cleanup_fixture(fx)
 end

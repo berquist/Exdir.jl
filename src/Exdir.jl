@@ -10,7 +10,6 @@ export
     create_raw,
     delete_object,
     exdiropen,
-    IOError,
     is_nonraw_object_directory,
     require_dataset,
     require_group,
@@ -19,6 +18,7 @@ export
 
 include("consistency.jl")
 include("constants.jl")
+include("exceptions.jl")
 include("mode.jl")
 include("path.jl")
 
@@ -586,7 +586,7 @@ function defaultmetadata(typename::String)
 end
 
 makemetadata(typename::String) = YAML.write(defaultmetadata(typename))
-makemetadata(_::Object) = error("makemetadata not implemented for Exdir.Object")
+makemetadata(_::Object) = throw(NotImplementedError("makemetadata not implemented for Exdir.Object"))
 makemetadata(_::Dataset) = makemetadata(DATASET_TYPENAME)
 makemetadata(_::Group) = makemetadata(GROUP_TYPENAME)
 makemetadata(_::File) = makemetadata(FILE_TYPENAME)

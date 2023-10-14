@@ -1,6 +1,8 @@
 using Exdir
 using Test
 
+import Exdir: NotImplementedError
+
 @testset "dataset" begin
 
 # Create a scalar dataset.
@@ -113,6 +115,7 @@ end
 
     ds = create_dataset(f, "foo/bar/baz"; shape=(10, 10), dtype=Int32)
     @test isa(ds, Exdir.Dataset)
+    # Checking for an absolute path in a file should work, though.
     @test "/foo/bar/baz" in f
 
     cleanup_fixture(fx)
