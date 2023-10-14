@@ -10,9 +10,9 @@ end
 function name_to_asserted_group_path(name::AbstractString)
     path = clean_path(name)
     if isabspath(path)
-        throw(ArgumentError("Absolute paths are currently not supported and unlikely to be implemented."))
+        throw(NotImplementedError("Absolute paths are currently not supported and unlikely to be implemented."))
     elseif splitpath(path) == [""]
-        throw(ArgumentError("Getting an item on a group with path '$name' is not supported and unlikely to be implemented."))
+        throw(NotImplementedError("Getting an item on a group with path '$(name)' is not supported and unlikely to be implemented."))
     end
     path
 end

@@ -1,7 +1,7 @@
 using Exdir
 using Test
 
-import Exdir: Object, open_object, ATTRIBUTES_FILENAME, META_FILENAME
+import Exdir: IOError, Object, open_object, ATTRIBUTES_FILENAME, META_FILENAME
 
 include("support.jl")
 
