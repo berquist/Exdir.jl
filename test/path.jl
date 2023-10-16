@@ -3,6 +3,7 @@ using Test
 import Exdir:
     clean_path,
     name_to_asserted_group_path,
+    NotImplementedError,
     remove_root,
     form_relative_path
 
@@ -15,9 +16,12 @@ import Exdir:
         @test clean_path("./hello////world///") == "hello/world"
     end
 
-    # @testset "name_to_asserted_group_path" begin
-
-    # end
+    @testset "name_to_asserted_group_path" begin
+        @test name_to_asserted_group_path("mything") == "mything"
+        @test name_to_asserted_group_path("mynested/thing") == "mynested/thing"
+        @test name_to_asserted_group_path("") == "."
+        @test_throws NotImplementedError name_to_asserted_group_path("/mynested/thing")
+    end
 
     @testset "remove_root" begin
         @test remove_root("hello") == "hello"
