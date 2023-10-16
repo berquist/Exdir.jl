@@ -1,7 +1,7 @@
 function clean_path(path::AbstractString)
     path = normpath(path)
-    if isdirpath(path)
-        dirname(path)
+    if path[end] == '/'
+        path = path[1:end-1]
     else
         path
     end
@@ -19,12 +19,10 @@ end
 
 function remove_root(path::AbstractString)
     path = clean_path(path)
-    components = splitpath(path)
-    if components[1] == "/"
-        joinpath(components[2:length(components)])
-    else
-        path
+    if isabspath(path)
+        path = relpath(path, "/")
     end
+    path
 end
 
 form_relative_path(parent_path::AbstractString, object_name::AbstractString) =
