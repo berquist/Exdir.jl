@@ -27,6 +27,8 @@ end
 
     dset = create_dataset(grp, "foo"; shape=(1,))
     @test size(dset) == (1,)
+    # TODO
+    # @test collect(dset)
 
     cleanup_fixture(fx)
 end
@@ -215,8 +217,8 @@ end
     dset = create_dataset(grp, "foo"; shape=(10, 3), dtype=Int32)
     dset2 = create_dataset(grp, "foo"; shape=(10, 3), dtype=Int16, exact=false)
     @test dset == dset2
-    # TODO look at dset2.dtype?
     @test eltype(dset2) == Int32
+    @test dset2.dtype == Int32
 
     cleanup_fixture(fx)
 end
@@ -239,7 +241,12 @@ end
 @testset "dataset_compound_fill" begin
     (fx, f) = setup_teardown_file()
 
+    grp = create_group(f, "test")
+
     # TODO
+    # dt = np.dtype([('a', 'f4'), ('b', 'i8')])
+    # v = np.ones((1,), dtype=dt)[0]
+    # dset = grp.create_dataset('foo', (10,), dtype=dt, fillvalue=v)
 
     cleanup_fixture(fx)
 end
@@ -326,24 +333,44 @@ end
     cleanup_fixture(fx)
 end
 
+# Iterating over scalar dataset raises TypeError.
 @testset "dataset_iter_scalar" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; shape=())
+    @test_throws TypeError [x for x in dset]
 
     cleanup_fixture(fx)
 end
 
+# Trailing slashes are unconditionally ignored.
 @testset "dataset_trailing_slash" begin
     (fx, f) = setup_teardown_file()
 
-    # TODO
+    f["dataset"] = 42
+    @test "dataset/" in f
 
     cleanup_fixture(fx)
 end
 
+# Feature: Compound types correctly round-trip
+# Compound types are read back in correct order.
 @testset "dataset_compound" begin
     (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    struct dt
+        weight::Float64
+        cputime::Float64
+        walltime::Float64
+        parents_offset::UInt32
+        n_parents::UInt32
+        status::UInt8
+        endpoint_type::UInt8
+    end
 
     # TODO
 

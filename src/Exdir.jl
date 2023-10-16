@@ -197,6 +197,14 @@ struct Dataset <: AbstractObject
     end
 end
 
+function Base.getproperty(dset::Dataset, sym::Symbol)
+    if sym == :dtype
+        return eltype(dset)
+    else
+        return getproperty(convert(Object, dset), sym)
+    end
+end
+
 Base.collect(dset::Dataset) = collect(dset.data)
 Base.iterate(dset::Dataset) = iterate(dset.data)
 Base.iterate(dset::Dataset, state) = iterate(dset.data, state)
