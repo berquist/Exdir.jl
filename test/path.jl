@@ -32,7 +32,7 @@ import Exdir:
         @test form_relative_path("./citrus", "lemon") == "citrus/lemon"
         @test form_relative_path("./citrus", "lemon/") == "citrus/lemon"
         @test form_relative_path("./citrus", "lemon/meyer/") == "citrus/lemon/meyer"
-        @test form_relative_path(".", "") == ""
-        @test form_relative_path("./", "") == ""
+        @test form_relative_path(".", "") == "."
+        @test form_relative_path("./", "") == "."
     end
 end
