@@ -197,12 +197,46 @@ struct Dataset <: AbstractObject
     end
 end
 
+function Base.convert(::Type{Object}, dset::Dataset)
+    Object(;
+        root_directory = dset.root_directory,
+        parent_path = dset.parent_path,
+        object_name = dset.object_name,
+        file = dset.file,
+    )
+end
+
 function Base.getproperty(dset::Dataset, sym::Symbol)
     if sym == :dtype
         return eltype(dset)
+    # TODO
+    elseif sym == :directory
+        return joinpath(dset.root_directory, dset.relative_path)
+    elseif sym == :attrs
+        return Attribute()
+    elseif sym == :meta
+        return Attribute()
+    elseif sym == :attributes_filename
+        return joinpath(dset.directory, ATTRIBUTES_FILENAME)
+    elseif sym == :meta_filename
+        return joinpath(dset.directory, META_FILENAME)
+    elseif sym == :parent
+        if length(splitpath(dset.parent_path)) < 1
+            return nothing
+        end
+        (parent_parent_path, parent_name) = splitdir(dset.parent_path)
+        return Group(
+            root_directory = dset.root_directory,
+            parent_path = parent_parent_path,
+            dsetect_name = parent_name,
+            file = dset.file,
+        )
     else
-        return getproperty(convert(Object, dset), sym)
+        return getfield(dset, sym)
     end
+    # else
+    #     return getproperty(convert(Object, dset), sym)
+    # end
 end
 
 Base.collect(dset::Dataset) = collect(dset.data)
@@ -466,9 +500,6 @@ end
 
 Base.in(name::AbstractString, file::File) = in(remove_root(name), convert(Group, file))
 
-# MethodError: Cannot `convert` an object of type Exdir.File to an object of type Exdir.Group
-# Closest candidates are:
-#   convert(::Type{T}, ::T) where T
 function Base.convert(::Type{Group}, file::File)
     Group(;
         root_directory = file.root_directory,
