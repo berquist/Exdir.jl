@@ -827,7 +827,7 @@ function require_dataset(grp::AbstractGroup, name::AbstractString;
     if !isa(current_object, Dataset)
         throw(
             TypeError(
-                require_dataset,
+                :require_dataset,
                 "Incompatible object already exists",
                 Dataset,
                 typeof(current_object)
@@ -856,7 +856,7 @@ function require_dataset(grp::AbstractGroup, name::AbstractString;
         if exact
             throw(
                 TypeError(
-                    require_dataset,
+                    :require_dataset,
                     "Datatypes do not exactly match",
                     dtype_exist,
                     dtype
