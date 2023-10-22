@@ -992,14 +992,14 @@ function _dataset(grp::AbstractGroup, name::AbstractString)
     )
 end
 
-function _assert_data_shape_dtype_match(data, shape::Dims, dtype)
+function _assert_data_shape_dtype_match(data, shape::Union{Dims, Nothing}, dtype)
     if !isnothing(data)
         sz = size(data)
-        if prod(sz) != prod(shape)
+        if !isnothing(shape) && (prod(sz) != prod(shape))
             error("Provided shape and size(data) do not match: $shape vs $sz")
         end
         et = eltype(data)
-        if et != dtype
+        if !isnothing(dtype) && (et != dtype)
             error("Provided dtype and eltype(data) do not match: $dtype vs $et")
         end
     end
