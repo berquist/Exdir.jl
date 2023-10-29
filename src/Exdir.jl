@@ -247,6 +247,27 @@ Base.size(dset::Dataset) = size(dset.data)
 Base.getindex(dset::Dataset, inds...) = getindex(dset.data, inds...)
 Base.eltype(dset::Dataset) = eltype(dset.data)
 
+# TODO this may fail in a gross way if value is a group/file/other Exdir type.
+# Can we restrict to scalars and arrays?
+function Base.setindex!(grp::AbstractGroup, value, name::AbstractString)
+    assert_file_open(grp.file)
+    path = name_to_asserted_group_path(name)
+    parts = splitpath(path)
+    if length(parts) > 1
+        grp[dirname(path)][basename(path)] = value
+        return nothing
+    end
+    if !in(name, grp)
+        create_dataset(grp, name; data=value)
+        return nothing
+    end
+    if !isa(grp[name], Dataset)
+        error("Unable to assign value, $(name) already exists")
+    end
+    grp[name].value = value
+    nothing
+end
+
 struct Group <: AbstractGroup
     root_directory::String
     parent_path::String
@@ -297,7 +318,8 @@ function unsafe_dataset(grp::AbstractGroup, name)
         root_directory = grp.root_directory,
         parent_path = grp.relative_path,
         object_name = name,
-        file = grp.file
+        file = grp.file,
+        data = nothing,
     )
 end
 
@@ -750,6 +772,7 @@ end
 function create_dataset(grp::AbstractGroup, name::AbstractString;
                         shape=nothing,
                         dtype=nothing,
+                        exact::Bool=false,
                         data=nothing,
                         fillvalue=nothing)
     # https://github.com/CINPLA/exdir/blob/89c1d34a5ce65fefc09b6fe1c5e8fef68c494e75/exdir/core/group.py#L72
@@ -819,7 +842,7 @@ function require_dataset(grp::AbstractGroup, name::AbstractString;
     assert_file_open(grp.file)
     if !in(name, grp)
         return create_dataset(grp, name,
-                              shape=shape, dtype=dtype, data=data, fillvalue=fillvalue)
+                              shape=shape, dtype=dtype, exact=exact, data=data, fillvalue=fillvalue)
     end
 
     current_object = grp[name]
@@ -835,7 +858,7 @@ function require_dataset(grp::AbstractGroup, name::AbstractString;
         )
     end
 
-    (data, attrs, meta) = _prepare_write(data, attrs=Dict(), meta=Dict())
+    (data, attrs, meta) = _prepare_write(data, Dict(), Dict())
 
     # TODO verify proper attributes
 
