@@ -133,7 +133,7 @@ end
     cleanup_fixture(fx)
 end
 
-# Name conflic causes group creation to fail with ArgumentError.
+# Name conflict causes group creation to fail with ArgumentError.
 @testset "group_create_exception" begin
     (fx, f) = setup_teardown_file()
 
