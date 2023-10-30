@@ -4,6 +4,7 @@ using Test
     # include("example_hdf5.jl")
     # include("example.jl")
     include("path.jl")
+    include("consistency.jl")
     include("object.jl")
     include("raw.jl")
     include("group.jl")

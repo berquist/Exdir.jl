@@ -7,6 +7,7 @@ function _data_to_shape_and_dtype(data, shape, dtype)
         if isnothing(dtype)
             dtype = eltype(data)
         end
+        _assert_data_shape_dtype_match(data, shape, dtype)
         return (shape, dtype)
     end
     if isnothing(dtype)
