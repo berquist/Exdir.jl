@@ -16,5 +16,8 @@ import Exdir:
         @test _data_to_shape_and_dtype(nothing, dim, ComplexF16) == (dim, ComplexF16)
         @test _data_to_shape_and_dtype(x, nothing, nothing) == (dim, default_dtype)
         @test _data_to_shape_and_dtype(z, nothing, nothing) == (dim, ComplexF64)
+
+        @test_throws ArgumentError _data_to_shape_and_dtype(x, (5, 9), nothing)
+        @test_throws ArgumentError _data_to_shape_and_dtype(x, nothing, Float16)
     end
 end
