@@ -1,5 +1,6 @@
 module Exdir
 
+import NPZ
 import YAML
 
 export
@@ -180,19 +181,19 @@ struct Dataset <: AbstractObject
     relative_path::String
     name::String
 
-    data
-
     function Dataset(; root_directory, parent_path, object_name, file, data)
         relative_path = form_relative_path(parent_path, object_name)
         name = "/" * relative_path
+        @assert !isnothing(data)
+        data_filename = _dataset_filename(_directory(root_directory, relative_path))
+        NPZ.npzwrite(data_filename, data)
         new(
             root_directory,
             parent_path,
             object_name,
             file,
             relative_path,
-            name,
-            data
+            name
         )
     end
 end
@@ -206,12 +207,18 @@ function Base.convert(::Type{Object}, dset::Dataset)
     )
 end
 
+_directory(root_directory, relative_path) = joinpath(root_directory, relative_path)
+_directory(dset::Dataset) = _directory(dset.root_directory, dset.relative_path)
+_dataset_filename(dset_directory::AbstractString) = joinpath(dset_directory, DSET_FILENAME)
+
 function Base.getproperty(dset::Dataset, sym::Symbol)
     if sym == :dtype
         return eltype(dset)
+    elseif sym == :data
+        return NPZ.npzread(_dataset_filename(_directory(dset)))
     # TODO
     elseif sym == :directory
-        return joinpath(dset.root_directory, dset.relative_path)
+        return _directory(dset)
     elseif sym == :attrs
         return Attribute()
     elseif sym == :meta
@@ -822,15 +829,14 @@ function create_dataset(grp::AbstractGroup, name::AbstractString;
 
     create_object_directory(joinpath(grp.directory, name), meta)
 
-    dataset = Dataset(
+    # TODO pass attrs, meta
+    return Dataset(
         root_directory = grp.root_directory,
         parent_path = grp.relative_path,
         object_name = name,
         file = grp.file,
         data = prepared_data
     )
-    # dataset._reset_data(prepared_data, attrs, None)  # meta already set above
-    dataset
 end
 
 function require_dataset(grp::AbstractGroup, name::AbstractString;
