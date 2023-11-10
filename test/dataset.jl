@@ -151,8 +151,8 @@ end
     dset2 = require_dataset(grp, "bar"; data=(3, 10))
     dset3 = require_dataset(grp, "bar"; data=(4, 11))
     @test isa(dset2, Exdir.Dataset)
-    @test dset2[:] == (3, 10)
-    @test dset3[:] == (3, 10)
+    @test dset2[:] == [3, 10]
+    @test dset3[:] == [3, 10]
     @test dset2 == dset3
 
     cleanup_fixture(fx)
@@ -172,14 +172,14 @@ end
     cleanup_fixture(fx)
 end
 
-# require_dataset with shape conflict yields TypeError.
+# require_dataset with shape conflict yields TypeError in Python.
 @testset "dataset_shape_conflict" begin
     (fx, f) = setup_teardown_file()
 
     grp = create_group(f, "test")
 
     create_dataset(grp, "foo"; shape=(10, 3))
-    @test_throws TypeError require_dataset(grp, "foo"; shape=(10, 4))
+    @test_throws DimensionMismatch require_dataset(grp, "foo"; shape=(10, 4))
 
     cleanup_fixture(fx)
 end
