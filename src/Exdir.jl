@@ -181,12 +181,9 @@ struct Dataset <: AbstractObject
     relative_path::String
     name::String
 
-    function Dataset(; root_directory, parent_path, object_name, file, data)
+    function Dataset(; root_directory, parent_path, object_name, file)
         relative_path = form_relative_path(parent_path, object_name)
         name = "/" * relative_path
-        @assert !isnothing(data)
-        data_filename = _dataset_filename(_directory(root_directory, relative_path))
-        NPZ.npzwrite(data_filename, data)
         new(
             root_directory,
             parent_path,
@@ -215,7 +212,9 @@ function Base.getproperty(dset::Dataset, sym::Symbol)
     if sym == :dtype
         return eltype(dset)
     elseif sym == :data
-        return NPZ.npzread(_dataset_filename(_directory(dset)))
+        return NPZ.npzread(dset.data_filename)
+    elseif sym == :data_filename
+        return _dataset_filename(_directory(dset))
     # TODO
     elseif sym == :directory
         return _directory(dset)
@@ -246,12 +245,23 @@ function Base.getproperty(dset::Dataset, sym::Symbol)
     # end
 end
 
+function Base.setproperty!(dset::Dataset, name::Symbol, value)
+    if name == :data
+        assert_file_open(dset.file)
+        (data, _, _) = _prepare_write(value, Dict(), Dict())
+        NPZ.npzwrite(dset.data_filename, data)
+    else
+        error("Cannot set property $(name) on Datasets")
+    end
+end
+
 Base.collect(dset::Dataset) = collect(dset.data)
 Base.iterate(dset::Dataset) = iterate(dset.data)
 Base.iterate(dset::Dataset, state) = iterate(dset.data, state)
 Base.length(dset::Dataset) = prod(size(dset))
 Base.size(dset::Dataset) = size(dset.data)
 Base.getindex(dset::Dataset, inds...) = getindex(dset.data, inds...)
+Base.setindex!(dset::Dataset, val, inds...) = setindex!(dset.data, val, inds...)
 Base.eltype(dset::Dataset) = eltype(dset.data)
 
 # TODO this may fail in a gross way if value is a group/file/other Exdir type.
@@ -326,7 +336,6 @@ function unsafe_dataset(grp::AbstractGroup, name)
         parent_path = grp.relative_path,
         object_name = name,
         file = grp.file,
-        data = nothing,
     )
 end
 
@@ -830,13 +839,14 @@ function create_dataset(grp::AbstractGroup, name::AbstractString;
     create_object_directory(joinpath(grp.directory, name), meta)
 
     # TODO pass attrs, meta
-    return Dataset(
+    dset = Dataset(
         root_directory = grp.root_directory,
         parent_path = grp.relative_path,
         object_name = name,
-        file = grp.file,
-        data = prepared_data
+        file = grp.file
     )
+    dset.data = prepared_data
+    return dset
 end
 
 function require_dataset(grp::AbstractGroup, name::AbstractString;
@@ -1010,15 +1020,6 @@ end
 
 function _assert_valid_name(name::AbstractString, container)
     # container.file.name_validation(container.directory, name)
-end
-
-function _dataset(grp::AbstractGroup, name::AbstractString)
-    Dataset(
-        root_directory = grp.root_directory,
-        parent_path = grp.relative_path,
-        object_name = name,
-        file = grp.file,
-    )
 end
 
 end
