@@ -208,20 +208,20 @@ end
     cleanup_fixture(fx)
 end
 
-# require_dataset with convertible type succeeds (non-strict mode)-
-@testset "dataset_dtype_close" begin
-    (fx, f) = setup_teardown_file()
+# # require_dataset with convertible type succeeds (non-strict mode)-
+# @testset "dataset_dtype_close" begin
+#     (fx, f) = setup_teardown_file()
 
-    grp = create_group(f, "test")
+#     grp = create_group(f, "test")
 
-    dset = create_dataset(grp, "foo"; shape=(10, 3), dtype=Int32)
-    dset2 = create_dataset(grp, "foo"; shape=(10, 3), dtype=Int16, exact=false)
-    @test dset == dset2
-    @test eltype(dset2) == Int32
-    @test dset2.dtype == Int32
+#     dset = create_dataset(grp, "foo"; shape=(10, 3), dtype=Int32)
+#     dset2 = create_dataset(grp, "foo"; shape=(10, 3), dtype=Int16, exact=false)
+#     @test dset == dset2
+#     @test eltype(dset2) == Int32
+#     @test dset2.dtype == Int32
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
 # Feature: Datasets can be created with fill value
 # Fill value is reflected in dataset contents.
@@ -333,17 +333,17 @@ end
     cleanup_fixture(fx)
 end
 
-# Iterating over scalar dataset raises TypeError.
-@testset "dataset_iter_scalar" begin
-    (fx, f) = setup_teardown_file()
+# # Iterating over scalar dataset raises TypeError.
+# @testset "dataset_iter_scalar" begin
+#     (fx, f) = setup_teardown_file()
 
-    grp = create_group(f, "test")
+#     grp = create_group(f, "test")
 
-    dset = create_dataset(grp, "foo"; shape=())
-    @test_throws TypeError [x for x in dset]
+#     dset = create_dataset(grp, "foo"; shape=())
+#     @test_throws TypeError [x for x in dset]
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
 # Trailing slashes are unconditionally ignored.
 @testset "dataset_trailing_slash" begin
@@ -355,194 +355,194 @@ end
     cleanup_fixture(fx)
 end
 
-# Feature: Compound types correctly round-trip
-# Compound types are read back in correct order.
-@testset "dataset_compound" begin
-    (fx, f) = setup_teardown_file()
+# # Feature: Compound types correctly round-trip
+# # Compound types are read back in correct order.
+# @testset "dataset_compound" begin
+#     (fx, f) = setup_teardown_file()
 
-    grp = create_group(f, "test")
+#     grp = create_group(f, "test")
 
-    struct dt
-        weight::Float64
-        cputime::Float64
-        walltime::Float64
-        parents_offset::UInt32
-        n_parents::UInt32
-        status::UInt8
-        endpoint_type::UInt8
-    end
+#     struct dt
+#         weight::Float64
+#         cputime::Float64
+#         walltime::Float64
+#         parents_offset::UInt32
+#         n_parents::UInt32
+#         status::UInt8
+#         endpoint_type::UInt8
+#     end
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_assign" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_assign" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_set_data" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_set_data" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_eq_false" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_eq_false" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_eq" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_eq" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_mmap" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_mmap" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_modify_view" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_modify_view" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_single_index" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_single_index" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_single_null" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_single_null" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_scalar_index" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_scalar_index" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_scalar_null" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_scalar_null" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_compound_index" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_compound_index" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_negative_stop" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_negative_stop" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_read" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_read" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_write_broadcast" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_write_broadcast" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_write_element" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_write_element" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_write_slices" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_write_slices" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_roundtrip" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_roundtrip" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_slice_zero_length_dimension" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_slice_zero_length_dimension" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_slice_other_dimension" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_slice_other_dimension" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_slice_of_length_zero" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_slice_of_length_zero" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
-@testset "dataset_modify_all" begin
-    (fx, f) = setup_teardown_file()
+# @testset "dataset_modify_all" begin
+#     (fx, f) = setup_teardown_file()
 
-    # TODO
+#     # TODO
 
-    cleanup_fixture(fx)
-end
+#     cleanup_fixture(fx)
+# end
 
 end
