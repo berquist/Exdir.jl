@@ -33,7 +33,7 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: julia-actions/cache@569d290d51d6c22c1cd4ceec591a1bf112aab9c0 # v1.2.2
+      - uses: julia-actions/cache@dc1a3cdeacb521b0ca93cfc66143fcadb15a5bd0 # v1.5.2
       - uses: julia-actions/julia-buildpkg@90dd6f23eb49626e4e6612cb9d64d456f86e6a1c # v1.6.0
       - uses: julia-actions/julia-runtest@79a7e100883947123f8263c5f06e6c0ea3eb972f # v1.9.3
       - uses: julia-actions/julia-processcoverage@51f6c28a089e613035452e069b8a002671dd24a5 # v1.2.2
