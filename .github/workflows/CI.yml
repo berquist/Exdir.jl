@@ -29,7 +29,7 @@ jobs:
           - x64
     steps:
       - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@f40c4b69330df1d22e7590c12e76dc2f9c66e0bc # v1.9.2
+      - uses: julia-actions/setup-julia@a1561e938c17e7aaf8236334d6d533e774c71dcd # v1.9.5
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
@@ -51,7 +51,7 @@ jobs:
       statuses: write
     steps:
       - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@f40c4b69330df1d22e7590c12e76dc2f9c66e0bc # v1.9.2
+      - uses: julia-actions/setup-julia@a1561e938c17e7aaf8236334d6d533e774c71dcd # v1.9.5
         with:
           version: '1'
       - uses: julia-actions/julia-buildpkg@90dd6f23eb49626e4e6612cb9d64d456f86e6a1c # v1.6.0
