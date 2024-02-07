@@ -1,70 +1,548 @@
 using Exdir
 using Test
 
+import Exdir: NotImplementedError
+
+@testset "dataset" begin
+
 # Create a scalar dataset.
 @testset "dataset_create_scalar" begin
-    # TODO fixture
-    f = exdiropen("dataset_create_scalar.exdir", "w")
+    (fx, f) = setup_teardown_file()
+
     grp = create_group(f, "test")
 
     dset = create_dataset(grp, "foo"; shape=())
     @test size(dset) == ()
+    # TODO
     # @test collect(dset) == 0
+
+    cleanup_fixture(fx)
 end
 
-# # Create a size-1 dataset.
+# Create a size-1 dataset.
 @testset "dataset_create_simple" begin
-    f = exdiropen("dataset_create_simple.exdir", "w")
+    (fx, f) = setup_teardown_file()
+
     grp = create_group(f, "test")
 
     dset = create_dataset(grp, "foo"; shape=(1,))
     @test size(dset) == (1,)
+    # TODO
+    # @test collect(dset)
+
+    cleanup_fixture(fx)
 end
 
-# # Create an extended dataset.
-# @testset "dataset_create_extended" begin
-#     f = exdiropen("dataset_create_extended.exdir", "w")
+# Create an extended dataset.
+@testset "dataset_create_extended" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; shape=(63,))
+    @test size(dset) == (63,)
+    @test length(dset) == 63
+
+    dset = create_dataset(grp, "bar"; shape=(6, 10))
+    @test size(dset) == (6, 10)
+    @test length(dset) == 60
+
+    cleanup_fixture(fx)
+end
+
+# Confirm that the default dtype is Float64.
+@testset "dataset_default_dtype" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; shape=(63,))
+    @test isa(collect(dset), AbstractArray{Float64})
+
+    cleanup_fixture(fx)
+end
+
+# Missing shape raises TypeError in Python, ArgumentError in Julia.
+@testset "dataset_missing_shape" begin
+    (fx, f) = setup_teardown_file()
+
+    @test_throws ArgumentError create_dataset(f, "foo")
+
+    cleanup_fixture(fx)
+end
+
+# Confirm that an alternate dtype can be specified.
+@testset "dataset_short_int" begin
+    (fx, f) = setup_teardown_file()
+
+    dset = create_dataset(f, "foo"; shape=(63,), dtype=Int16)
+    @test isa(collect(dset), AbstractArray{Int16})
+
+    cleanup_fixture(fx)
+end
+
+# Create a scalar dataset from existing array.
+@testset "dataset_create_scalar_data" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    data = ones()
+    dset = create_dataset(grp, "foo"; data=data)
+    @test size(dset) == size(data)
+
+    cleanup_fixture(fx)
+end
+
+# Create an extended dataset from existing data.
+@testset "dataset_create_extended_data" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    data = ones(63)
+    dset = create_dataset(grp, "foo"; data=data)
+    @test size(dset) == size(data)
+
+    cleanup_fixture(fx)
+end
+
+# Create dataset with missing intermediate groups.
+@testset "dataset_intermediate_group" begin
+    (fx, f) = setup_teardown_file()
+
+    # Trying to create intermediate groups that are absolute should fail just
+    # like when creating them on groups.
+    @test_throws NotImplementedError create_dataset(f, "/foo/bar/baz"; shape=(10, 10), dtype=Int32)
+
+    ds = create_dataset(f, "foo/bar/baz"; shape=(10, 10), dtype=Int32)
+    @test isa(ds, Exdir.Dataset)
+    # Checking for an absolute path in a file should work, though.
+    @test "/foo/bar/baz" in f
+
+    cleanup_fixture(fx)
+end
+
+# Create from existing data, and make it fit a new shape.
+@testset "dataset_reshape" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    data = collect(Float64, 1:30)
+    dset = create_dataset(grp, "foo"; shape=(10, 3), data=data)
+    @test size(dset) == (10, 3)
+    @test dset.data == reshape(data, (10, 3))
+
+    cleanup_fixture(fx)
+end
+
+# Feature: Datasets can be created only if they don't exist in the file
+# Create new dataset with no conflicts.
+@testset "dataset_create" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    dset = require_dataset(grp, "foo"; shape=(10, 3))
+    @test isa(dset, Exdir.Dataset)
+    @test size(dset) == (10, 3)
+
+    dset2 = require_dataset(grp, "bar"; data=(3, 10))
+    dset3 = require_dataset(grp, "bar"; data=(4, 11))
+    @test isa(dset2, Exdir.Dataset)
+    @test dset2[:] == [3, 10]
+    @test dset3[:] == [3, 10]
+    @test dset2 == dset3
+
+    cleanup_fixture(fx)
+end
+
+# require_dataset yields existing dataset.
+@testset "dataset_create_existing" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    dset = require_dataset(grp, "foo"; shape=(10, 3), dtype=Float32)
+    dset2 = require_dataset(grp, "foo"; shape=(10, 3), dtype=Float32)
+
+    @test dset == dset2
+
+    cleanup_fixture(fx)
+end
+
+# require_dataset with shape conflict yields TypeError in Python.
+@testset "dataset_shape_conflict" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    create_dataset(grp, "foo"; shape=(10, 3))
+    @test_throws DimensionMismatch require_dataset(grp, "foo"; shape=(10, 4))
+
+    cleanup_fixture(fx)
+end
+
+# require_dataset with object type conflict yields TypeError.
+@testset "dataset_type_conflict" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    create_group(grp, "foo")
+    @test_throws TypeError require_dataset(grp, "foo"; shape=(10, 3))
+
+    cleanup_fixture(fx)
+end
+
+# require_dataset with dtype conflict (strict mode) yields TypeError.
+@testset "dataset_dtype_conflict" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    create_dataset(grp, "foo"; shape=(10, 3), dtype=Float64)
+    @test_throws TypeError require_dataset(grp, "foo"; shape=(10, 3), dtype=UInt8)
+
+    cleanup_fixture(fx)
+end
+
+# # require_dataset with convertible type succeeds (non-strict mode)-
+# @testset "dataset_dtype_close" begin
+#     (fx, f) = setup_teardown_file()
+
 #     grp = create_group(f, "test")
 
-#     dset = create_dataset(grp, "foo"; shape=(63,))
-#     @test shape(dset) == (63,)
-#     @test length(dset) == 63
+#     dset = create_dataset(grp, "foo"; shape=(10, 3), dtype=Int32)
+#     dset2 = create_dataset(grp, "foo"; shape=(10, 3), dtype=Int16, exact=false)
+#     @test dset == dset2
+#     @test eltype(dset2) == Int32
+#     @test dset2.dtype == Int32
 
-#     dset = create_dataset(grp, "bar"; shape=(6, 10))
-#     @test shape(dset) == (6, 10)
-#     @test length(dset) == 60
+#     cleanup_fixture(fx)
 # end
 
-# # Confirm that the default dtype is Float64.
-# @testset "dataset_default_dtype" begin
-#     f = exdiropen("dataset_default_dtype.exdir", "w")
+# Feature: Datasets can be created with fill value
+# Fill value is reflected in dataset contents.
+@testset "dataset_create_fillval" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; shape=(10,), fillvalue=4.0)
+    @test dset[1] == 4.0
+    @test dset[8] == 4.0
+
+    cleanup_fixture(fx)
+end
+
+# Fill value works with compound types.
+@testset "dataset_compound_fill" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    # TODO
+    # dt = np.dtype([('a', 'f4'), ('b', 'i8')])
+    # v = np.ones((1,), dtype=dt)[0]
+    # dset = grp.create_dataset('foo', (10,), dtype=dt, fillvalue=v)
+
+    cleanup_fixture(fx)
+end
+
+# Bogus fill value raises TypeError.
+@testset "dataset_exc" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    @test_throws TypeError create_dataset(grp, "foo"; shape=(10,), dtype=Float32, fillvalue=Dict("a" => 2))
+
+    cleanup_fixture(fx)
+end
+
+# Assignment of fixed-length byte string produces a fixed-length ASCII dataset
+@testset "dataset_string" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; data="string")
+    @test dset.data == "string"
+
+    cleanup_fixture(fx)
+end
+
+# Feature: Dataset dtype is available as .dtype property in Python, eltype in Julia
+# Retrieve dtype from dataset.
+@testset "dataset_dtype" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; shape=(5,), dtype=UInt8)
+    @test eltype(dset) == UInt8
+
+    cleanup_fixture(fx)
+end
+
+# Feature: Size of first axis is available via Python's len;
+# For Julia, size(...) gives the full shape and length(...) gives the total number of elements.
+@testset "dataset_len" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; shape=(312, 15))
+    @test size(dset) == (312, 15)
+    @test length(dset) == 312 * 15
+
+    cleanup_fixture(fx)
+end
+
+@testset "dataset_len_scalar" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; data=1)
+    @test size(dset) == ()
+    @test length(dset) == 1
+
+    cleanup_fixture(fx)
+end
+
+# Feature: Iterating over a dataset yields rows in Python, which is idiomatic
+# for NumPy, but yields scalars in Julia.
+@testset "dataset_iter" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    dtype = Float64
+    data = reshape(collect(dtype, 1:30), (10, 3))
+    dset = create_dataset(grp, "foo"; data=data)
+    for (x, y) in zip(dset, data)
+        @test isa(x, dtype)
+        @test length(x) == 1
+        @test size(x) == ()
+        @test x == y
+    end
+
+    cleanup_fixture(fx)
+end
+
+# # Iterating over scalar dataset raises TypeError.
+# @testset "dataset_iter_scalar" begin
+#     (fx, f) = setup_teardown_file()
+
 #     grp = create_group(f, "test")
 
-#     dset = create_dataset(grp, "foo"; shape=(63,))
-#     @test isa(collect(dset), AbstractArray{Float64})
+#     dset = create_dataset(grp, "foo"; shape=())
+#     @test_throws TypeError [x for x in dset]
+
+#     cleanup_fixture(fx)
 # end
 
-# # Missing shape raises TypeError.
-# @testset "dataset_missing_shape" begin
-    
+# Trailing slashes are unconditionally ignored.
+@testset "dataset_trailing_slash" begin
+    (fx, f) = setup_teardown_file()
+
+    f["dataset"] = 42
+    @test "dataset/" in f
+
+    cleanup_fixture(fx)
+end
+
+# # Feature: Compound types correctly round-trip
+# # Compound types are read back in correct order.
+# @testset "dataset_compound" begin
+#     (fx, f) = setup_teardown_file()
+
+#     grp = create_group(f, "test")
+
+#     struct dt
+#         weight::Float64
+#         cputime::Float64
+#         walltime::Float64
+#         parents_offset::UInt32
+#         n_parents::UInt32
+#         status::UInt8
+#         endpoint_type::UInt8
+#     end
+
+#     # TODO
+
+#     cleanup_fixture(fx)
 # end
 
-# # Confirm that an alternate dtype can be specified.
-# @testset "dataset_short_int" begin
-#     f = exdiropen("dataset_short_int.exdir", "w")
+# @testset "dataset_assign" begin
+#     (fx, f) = setup_teardown_file()
 
-#     dset = create_dataset(f, "foo"; shape=(63,), dtype=Int16)
-#     @test isa(collect(dset), AbstractArray{Int16})
+#     # TODO
+
+#     cleanup_fixture(fx)
 # end
 
-# @testset "dataset_create_scalar_data" begin
+# @testset "dataset_set_data" begin
+#     (fx, f) = setup_teardown_file()
 
+#     # TODO
+
+#     cleanup_fixture(fx)
 # end
 
-# @testset "dataset_create_extended_data" begin
+# @testset "dataset_eq_false" begin
+#     (fx, f) = setup_teardown_file()
 
+#     # TODO
+
+#     cleanup_fixture(fx)
 # end
 
-# @testset "dataset_intermediate_group" begin
+# @testset "dataset_eq" begin
+#     (fx, f) = setup_teardown_file()
 
+#     # TODO
+
+#     cleanup_fixture(fx)
 # end
+
+# @testset "dataset_mmap" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_modify_view" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_single_index" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_single_null" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_scalar_index" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_scalar_null" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_compound_index" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_negative_stop" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_read" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_write_broadcast" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_write_element" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_write_slices" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_roundtrip" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_slice_zero_length_dimension" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_slice_other_dimension" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_slice_of_length_zero" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+# @testset "dataset_modify_all" begin
+#     (fx, f) = setup_teardown_file()
+
+#     # TODO
+
+#     cleanup_fixture(fx)
+# end
+
+end
