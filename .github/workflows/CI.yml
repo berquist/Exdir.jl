@@ -40,8 +40,6 @@ jobs:
       - uses: codecov/codecov-action@3444e47d45411c1e34e39245eb914e9d557d2305 # v3.1.4
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        # with:
-        #   files: lcov.info
       - uses: julia-actions/julia-uploadcoveralls@0a153bb7587c4a8cb1cced4774973753bdf4450b # v1.0.0
         env:
           COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
