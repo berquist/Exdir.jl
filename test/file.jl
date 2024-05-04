@@ -7,7 +7,7 @@ import Exdir: create_object_directory,
     DATASET_TYPENAME,
     FILE_TYPENAME
 
-include("support.jl")
+# include("support.jl")
 
 """
     remove(name)

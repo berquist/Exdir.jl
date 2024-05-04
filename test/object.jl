@@ -3,7 +3,7 @@ using Test
 
 import Exdir: IOError, Object, open_object, ATTRIBUTES_FILENAME, META_FILENAME
 
-include("support.jl")
+# include("support.jl")
 
 @testset "object" begin
 

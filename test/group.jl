@@ -3,7 +3,7 @@ using Test
 
 import Exdir: NotImplementedError
 
-include("support.jl")
+# include("support.jl")
 
 @testset "group" begin
 

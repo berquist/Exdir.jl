@@ -3,7 +3,7 @@ using Test
 
 import Exdir: IOError
 
-include("support.jl")
+# include("support.jl")
 
 @testset "raw" begin
 
