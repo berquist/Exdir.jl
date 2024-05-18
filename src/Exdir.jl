@@ -262,7 +262,13 @@ Base.iterate(dset::Dataset, state) = iterate(dset.data, state)
 Base.length(dset::Dataset) = prod(size(dset))
 Base.size(dset::Dataset) = size(dset.data)
 Base.getindex(dset::Dataset, inds...) = getindex(dset.data, inds...)
-Base.setindex!(dset::Dataset, val, inds...) = setindex!(dset.data, val, inds...)
+# TODO
+# Base.setindex!(dset::Dataset, val, inds...) = setindex!(dset.data, val, inds...)
+function Base.setindex!(dset::Dataset, val, inds...)
+    tmp = dset.data
+    setindex!(tmp, val, inds...)
+    dset.data = tmp
+end
 Base.eltype(dset::Dataset) = eltype(dset.data)
 Base.firstindex(dset::Dataset) = firstindex(dset.data)
 Base.lastindex(dset::Dataset) = lastindex(dset.data)
