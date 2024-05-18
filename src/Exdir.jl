@@ -129,7 +129,7 @@ function Base.:(==)(obj::AbstractObject, other)
     # if obj.file.io_mode == OpenMode::FILE_CLOSED
     #     return false
     # end
-    if !isa(obj, AbstractObject)
+    if !isa(other, AbstractObject)
         false
     else
         obj.relative_path == other.relative_path &&
