@@ -1,4 +1,6 @@
+using EllipsisNotation
 using Exdir
+using StructArrays
 using Test
 
 import Exdir: NotImplementedError
