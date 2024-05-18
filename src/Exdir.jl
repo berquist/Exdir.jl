@@ -780,7 +780,7 @@ end
 function _prepare_write(data, attrs::AbstractDict, meta::AbstractDict)
     if isnothing(data)
         data = nothing
-    elseif !isa(data, AbstractArray) && !isa(data, AbstractString)
+    elseif !isa(data, AbstractArray)
         data = collect(data)
     end
     # If plugins were implemented, they would have been applied to attrs and
