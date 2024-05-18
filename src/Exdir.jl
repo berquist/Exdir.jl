@@ -264,9 +264,8 @@ Base.size(dset::Dataset) = size(dset.data)
 Base.getindex(dset::Dataset, inds...) = getindex(dset.data, inds...)
 Base.setindex!(dset::Dataset, val, inds...) = setindex!(dset.data, val, inds...)
 Base.eltype(dset::Dataset) = eltype(dset.data)
-Base.firstindex(::Dataset) = 1
-# FIXME
-Base.lastindex(::Dataset) = 1
+Base.firstindex(dset::Dataset) = firstindex(dset.data)
+Base.lastindex(dset::Dataset) = lastindex(dset.data)
 
 # TODO this may fail in a gross way if value is a group/file/other Exdir type.
 # Can we restrict to scalars and arrays?
