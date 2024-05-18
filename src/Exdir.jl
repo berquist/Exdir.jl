@@ -17,6 +17,7 @@ export
     require_raw,
     setattrs!
 
+include("can_cast.jl")
 include("consistency.jl")
 include("constants.jl")
 include("exceptions.jl")
