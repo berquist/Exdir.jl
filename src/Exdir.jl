@@ -810,6 +810,8 @@ function create_dataset(grp::AbstractGroup, name::AbstractString;
         throw(ArgumentError("Cannot create dataset. Missing shape or data keyword."))
     end
 
+    _assert_allowed_fillvalue(fillvalue)
+
     (prepared_data, attrs, meta) = _prepare_write(
         data,
         Dict(),

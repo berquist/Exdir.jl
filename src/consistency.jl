@@ -30,3 +30,20 @@ function _assert_data_shape_dtype_match(data, shape::Union{Dims, Nothing}, dtype
     end
     nothing
 end
+
+"""Only scalars and arrays of scalars are allowed as fill values."""
+function _assert_allowed_fillvalue(fillvalue)
+    if !isnothing(fillvalue)
+        # TODO
+        if isa(fillvalue, AbstractDict)
+            throw(
+                TypeError(
+                    :allowed_fillvalue,
+                    "fillvalue type is not supported",
+                    AbstractArray,
+                    typeof(fillvalue)
+                )
+            )
+        end
+    end
+end
