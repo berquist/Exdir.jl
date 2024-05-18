@@ -902,13 +902,16 @@ function require_dataset(grp::AbstractGroup, name::AbstractString;
                     dtype
                 )
             )
-            # if not np.can_cast(dtype, current_object.dtype):
-            #     raise TypeError(
-            #         "Cannot safely cast from {} to {}".format(
-            #             dtype,
-            #             current_object.dtype
-            #         )
-            #     )
+        end
+        if !can_cast(dtype, dtype_exist)
+            throw(
+                TypeError(
+                    :require_dataset,
+                    "Cannot safely cast",
+                    dtype_exist,
+                    dtype
+                )
+            )
         end
     end
 
