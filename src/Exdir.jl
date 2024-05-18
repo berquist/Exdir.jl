@@ -264,6 +264,9 @@ Base.size(dset::Dataset) = size(dset.data)
 Base.getindex(dset::Dataset, inds...) = getindex(dset.data, inds...)
 Base.setindex!(dset::Dataset, val, inds...) = setindex!(dset.data, val, inds...)
 Base.eltype(dset::Dataset) = eltype(dset.data)
+Base.firstindex(::Dataset) = 1
+# FIXME
+Base.lastindex(::Dataset) = 1
 
 # TODO this may fail in a gross way if value is a group/file/other Exdir type.
 # Can we restrict to scalars and arrays?
@@ -829,7 +832,7 @@ function create_dataset(grp::AbstractGroup, name::AbstractString;
             if isnothing(fillvalue)
                 fillvalue = 0.0
             end
-            prepared_data = fill(dtype(fillvalue), shape)
+            prepared_data = fill(convert(dtype, fillvalue), shape)
         end
     end
 
@@ -850,6 +853,10 @@ function create_dataset(grp::AbstractGroup, name::AbstractString;
     return dset
 end
 
+"""
+
+Open an existing dataset or create it if it does not exist.
+"""
 function require_dataset(grp::AbstractGroup, name::AbstractString;
                          shape=nothing,
                          dtype=nothing,

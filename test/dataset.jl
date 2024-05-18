@@ -146,6 +146,8 @@ end
 
     grp = create_group(f, "test")
 
+    # def require_dataset(self, name, shape=None, dtype=None, exact=False,
+    #                     data=None, fillvalue=None):
     dset = require_dataset(grp, "foo"; shape=(10, 3))
     @test isa(dset, Exdir.Dataset)
     @test size(dset) == (10, 3)
@@ -245,10 +247,12 @@ end
 
     grp = create_group(f, "test")
 
-    # TODO
-    # dt = np.dtype([('a', 'f4'), ('b', 'i8')])
-    # v = np.ones((1,), dtype=dt)[0]
-    # dset = grp.create_dataset('foo', (10,), dtype=dt, fillvalue=v)
+    struct dt
+        a::Float32
+        b::Int64
+    end
+    v = StructArray{dt}((a = ones(1), b = ones(1)))[1]
+    dset = create_dataset(grp, "foo"; shape=(10,), dtype=dt, fillvalue=v)
 
     cleanup_fixture(fx)
 end
@@ -374,7 +378,23 @@ end
 #         endpoint_type::UInt8
 #     end
 
-#     # TODO
+    # TODO
+    # lo = 0
+    # hi = 100
+    # d = MappedDistribution(dt,
+    #     Uniform(lo, hi),
+    #     Uniform(lo, hi),
+    #     Uniform(lo, hi),
+    #     Uniform(lo, hi),
+    #     Uniform(lo, hi),
+    #     Uniform(lo, hi),
+    #     Uniform(lo, hi)
+    # )
+
+    # dim = 16
+    # testdata = StructArray{dt}(undef, dim)
+    # Random.rand!(testdata)
+    # testdata *= 100
 
 #     cleanup_fixture(fx)
 # end
@@ -387,29 +407,44 @@ end
 #     cleanup_fixture(fx)
 # end
 
-# @testset "dataset_set_data" begin
-#     (fx, f) = setup_teardown_file()
+# Set data works correctly.
+@testset "dataset_set_data" begin
+    (fx, f) = setup_teardown_file()
 
-#     # TODO
+    # TODO
+    # grp = create_group(f, "test")
 
-#     cleanup_fixture(fx)
-# end
+    # testdata = ones(10, 2)
+    # grp["testdata"] = testdata
 
-# @testset "dataset_eq_false" begin
-#     (fx, f) = setup_teardown_file()
+    cleanup_fixture(fx)
+end
 
-#     # TODO
+@testset "dataset_eq_false" begin
+    (fx, f) = setup_teardown_file()
 
-#     cleanup_fixture(fx)
-# end
+    grp = create_group(f, "test")
 
-# @testset "dataset_eq" begin
-#     (fx, f) = setup_teardown_file()
+    dset = create_dataset(grp, "foo"; data=1)
+    dset2 = create_dataset(grp, "foobar"; shape=(2, 2))
 
-#     # TODO
+    @test dset != dset2
+    @test dset != 2
 
-#     cleanup_fixture(fx)
-# end
+    cleanup_fixture(fx)
+end
+
+@testset "dataset_eq" begin
+    (fx, f) = setup_teardown_file()
+
+    grp = create_group(f, "test")
+
+    dset = create_dataset(grp, "foo"; data=ones(2, 2))
+
+    @test dset == dset
+
+    cleanup_fixture(fx)
+end
 
 # @testset "dataset_mmap" begin
 #     (fx, f) = setup_teardown_file()
@@ -483,68 +518,154 @@ end
 #     cleanup_fixture(fx)
 # end
 
-# @testset "dataset_write_broadcast" begin
-#     (fx, f) = setup_teardown_file()
+# Array fill from constant is supported.
+@testset "dataset_write_broadcast" begin
+    (fx, f) = setup_teardown_file()
 
-#     # TODO
+    dt = Int8
+    shape = (10,)
+    c = 42
 
-#     cleanup_fixture(fx)
-# end
+    dset = create_dataset(f, "x"; shape=shape, dtype=dt)
+    dset[..] .= c
 
-# @testset "dataset_write_element" begin
-#     (fx, f) = setup_teardown_file()
+    data = ones(dt, shape...) * c
 
-#     # TODO
+    @test eltype(dset) == eltype(data)
+    @test isequal(dset.data, data)
 
-#     cleanup_fixture(fx)
-# end
+    cleanup_fixture(fx)
+end
 
-# @testset "dataset_write_slices" begin
-#     (fx, f) = setup_teardown_file()
+# Write a single element to the array.
+@testset "dataset_write_element" begin
+    (fx, f) = setup_teardown_file()
 
-#     # TODO
+    dt = Float16
+    dset = create_dataset(f, "x"; shape=(10, 3), dtype=dt)
 
-#     cleanup_fixture(fx)
-# end
+    data = dt.([1, 2, 3.0])
+    dset[5] = data
 
-# @testset "dataset_roundtrip" begin
-#     (fx, f) = setup_teardown_file()
+    out = dset[5]
+    @test eltype(out) == eltype(data)
+    @test isequal(out, data)
 
-#     # TODO
+    cleanup_fixture(fx)
+end
 
-#     cleanup_fixture(fx)
-# end
+# Write slices to array type.
+@testset "dataset_write_slices" begin
+    (fx, f) = setup_teardown_file()
 
-# @testset "dataset_slice_zero_length_dimension" begin
-#     (fx, f) = setup_teardown_file()
+    dt = Int32
+    data1 = ones(dt, 2, 3)
+    data2 = ones(dt, 4, 5, 3)
 
-#     # TODO
+    dset = create_dataset(f, "x"; shape=(10, 9, 11), dtype=dt)
 
-#     cleanup_fixture(fx)
-# end
+    dset[1, 1, 3:4] = data1
+    @test eltype(dset[1, 1, 3:4]) == eltype(data1)
+    @test isequal(dset[1, 1, 3:4], data1)
 
-# @testset "dataset_slice_other_dimension" begin
-#     (fx, f) = setup_teardown_file()
+    dset[4, 2:5, 7:11] = data2
+    @test eltype(dset[4, 2:5, 7:11]) == eltype(data2)
+    @test isequal(dset[4, 2:5, 7:11], data2)
 
-#     # TODO
+    cleanup_fixture(fx)
+end
 
-#     cleanup_fixture(fx)
-# end
+# Read the contents of an array and write them back.
+#
+# The initialization is not the same as in Python, since NumPy allows for
+# fancy dtypes where Julia could resort to structs without the array having a
+# dtype of object.  Use the third-party package StructArrays to efficiently
+# emulate this.
+@testset "dataset_roundtrip" begin
+    (fx, f) = setup_teardown_file()
 
-# @testset "dataset_slice_of_length_zero" begin
-#     (fx, f) = setup_teardown_file()
+    data = rand(10)
+    dset = create_dataset(f, "x"; data=data)
 
-#     # TODO
+    out = dset[..]
+    @test out == data
+    dset[..] = out
+    @test dset[..] == out
+    @test dset[..] == data
 
-#     cleanup_fixture(fx)
-# end
+    cleanup_fixture(fx)
+end
 
-# @testset "dataset_modify_all" begin
-#     (fx, f) = setup_teardown_file()
+# Slice a dataset with a zero in its shape vector along the zero-length
+# dimension.
+@testset "dataset_slice_zero_length_dimension" begin
+    (fx, f) = setup_teardown_file()
 
-#     # TODO
+    shapes = [(0,), (0, 3), (0, 2, 1)]
+    for (i, shape) in enumerate(shapes)
+        dset = create_dataset(f, "x$(i)"; shape=shape, dtype=Int32)
+        @test size(dset) == shape
+        out = dset[..]
+        # not AbstractArray, which Dataset obeys TODO
+        @test isa(out, Array)
+        @test size(out) == shape
+        out = dset[:]
+        @test isa(out, Array)
+        @test size(out) == shape
+        if length(shape) > 1
+            out = dset[:, :2]
+            @test isa(out, Array)
+            @test size(out) == (0, 1)
+        end
+    end
 
-#     cleanup_fixture(fx)
-# end
+    cleanup_fixture(fx)
+end
+
+# Slice a dataset with a zero in its shape vector along a non-zero-length
+# dimension.
+@testset "dataset_slice_other_dimension" begin
+    (fx, f) = setup_teardown_file()
+
+    shapes = [(3, 0), (1, 2, 0), (2, 0, 1)]
+    for (i, shape) in enumerate(shapes)
+        dset = create_dataset(f, "x$(i)"; shape=shape, dtype=Int32)
+        @test size(dset) == shape
+        out = dset[begin:2]
+        # not AbstractArray, which Dataset obeys TODO
+        @test isa(out, Array)
+        @test size(out) == (1, shape...)
+    end
+
+    cleanup_fixture(fx)
+end
+
+# Get a slice of length zero from a non-empty dataset.
+@testset "dataset_slice_of_length_zero" begin
+    (fx, f) = setup_teardown_file()
+
+    shapes = [(3,), (2, 2,), (2, 1, 5)]
+    for (i, shape) in enumerate(shapes)
+        dset = create_dataset(f, "x$(i)"; data=zeros(Int32, shape))
+        @test size(dset) == shape
+        out = dset[2:2]
+        # not AbstractArray, which Dataset obeys TODO
+        @test isa(out, Array)
+        @test size(out) == (0, shape...)
+    end
+
+    cleanup_fixture(fx)
+end
+
+@testset "dataset_modify_all" begin
+    (fx, f) = setup_teardown_file()
+
+    dset = create_dataset(f, "test"; data=1:10)
+    n = 4
+    dset.data = ones(n)
+    @test dset.data == ones(n)
+
+    cleanup_fixture(fx)
+end
 
 end
