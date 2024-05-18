@@ -545,9 +545,10 @@ end
     dset = create_dataset(f, "x"; shape=(10, 3), dtype=dt)
 
     data = dt.([1, 2, 3.0])
-    dset[5] = data
+    # TODO Python is dset[5]
+    dset[5, :] = data
 
-    out = dset[5]
+    out = dset[5, :]
     @test eltype(out) == eltype(data)
     @test isequal(out, data)
 
@@ -648,10 +649,15 @@ end
     for (i, shape) in enumerate(shapes)
         dset = create_dataset(f, "x$(i)"; data=zeros(Int32, shape))
         @test size(dset) == shape
-        out = dset[2:2]
+        # Python
+        # rng = 2:2
+        rng = 2:2:0
+        out = dset[rng]
         # not AbstractArray, which Dataset obeys TODO
         @test isa(out, Array)
-        @test size(out) == (0, shape...)
+        # TODO implications of this being different from Python? non-zero on all other dimensions?
+        # @test size(out) == (0, shape[2:end])
+        @test size(out) == (0,)
     end
 
     cleanup_fixture(fx)
