@@ -11,6 +11,7 @@ using Test
     include("raw.jl")
     include("group.jl")
     # include("file.jl")
+    include("prepare_write.jl")
     include("dataset.jl")
     # include("attr.jl")
 end
