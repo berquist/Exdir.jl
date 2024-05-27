@@ -497,12 +497,6 @@ function Base.delete!(grp::AbstractGroup, name::AbstractString)
 end
 delete_object(grp::AbstractGroup, name::AbstractString) = delete!(grp, name)
 
-struct IOError <: Exception
-    msg::String
-end
-
-Base.showerror(io::IO, e::IOError) = print(io, "IOError: $(e.msg)")
-
 struct File <: AbstractGroup
     root_directory::String
     parent_path::String
