@@ -9,18 +9,6 @@ import Exdir: create_object_directory,
 
 # include("support.jl")
 
-"""
-    remove(name)
-
-If name is a path or directory tree, recursively delete it.
-Otherwise, do nothing.
-"""
-function remove(name)
-    if ispath(name)
-        rm(name, recursive=true)
-    end
-end
-
 @testset "file" begin
 
 @testset "form_location" begin
