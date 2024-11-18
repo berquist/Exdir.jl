@@ -37,7 +37,7 @@ jobs:
       - uses: julia-actions/julia-buildpkg@90dd6f23eb49626e4e6612cb9d64d456f86e6a1c # v1.6.0
       - uses: julia-actions/julia-runtest@d0c4f093badade621cd041bba567d1e832480ac2 # v1.10.0
       - uses: julia-actions/julia-processcoverage@03114f09f119417c3242a9fb6e0b722676aedf38 # v1.2.2
-      - uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
+      - uses: codecov/codecov-action@5c47607acb93fed5485fdbf7232e8a31425f672a # v5.0.2
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       - uses: julia-actions/julia-uploadcoveralls@0a153bb7587c4a8cb1cced4774973753bdf4450b # v1.0.0
