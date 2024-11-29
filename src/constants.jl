@@ -7,6 +7,7 @@ const VERSION_METANAME = "version"
 const META_FILENAME = "exdir.yaml"
 const ATTRIBUTES_FILENAME = "attributes.yaml"
 const RAW_FOLDER_NAME = "__raw__"
+const DSET_FILENAME = "data.npy"
 
 # typenames
 const DATASET_TYPENAME = "dataset"
