@@ -1,9 +1,11 @@
 using Exdir
 using Test
 
-import Exdir: Object, open_object, ATTRIBUTES_FILENAME, META_FILENAME
+import Exdir: IOError, Object, open_object, ATTRIBUTES_FILENAME, META_FILENAME
 
-include("support.jl")
+# include("support.jl")
+
+@testset "object" begin
 
 @testset "object_init" begin
     fx = setup_teardown_folder()
@@ -88,4 +90,6 @@ end
     @test_throws IOError create_raw(obj, "test_raw")
 
     cleanup_fixture(fx)
+end
+
 end
