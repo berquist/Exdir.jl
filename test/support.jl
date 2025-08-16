@@ -60,3 +60,15 @@ function exdir_tmpfile()
     # close(f)
     # rm(tmpdir, recursive=true)
 end
+
+"""
+    remove(name)
+
+If name is a path or directory tree, recursively delete it.
+Otherwise, do nothing.
+"""
+function remove(name)
+    if ispath(name)
+        rm(name, recursive=true)
+    end
+end

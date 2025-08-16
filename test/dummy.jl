@@ -1,0 +1,8 @@
+include("support.jl")
+f = exdir_tmpfile()
+g1 = create_group(f, "g1")
+g2 = create_group(f, "g2")
+g3 = create_group(f, "g3")
+g4 = create_group(g2, "g4")
+g5 = create_group(g2, "g5")
+g6 = create_group(g3, "g6")
