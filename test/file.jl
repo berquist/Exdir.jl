@@ -7,19 +7,9 @@ import Exdir: create_object_directory,
     DATASET_TYPENAME,
     FILE_TYPENAME
 
-include("support.jl")
+# include("support.jl")
 
-"""
-    remove(name)
-
-If name is a path or directory tree, recursively delete it.
-Otherwise, do nothing.
-"""
-function remove(name)
-    if ispath(name)
-        rm(name, recursive=true)
-    end
-end
+@testset "file" begin
 
 @testset "form_location" begin
     @test form_location("/hello.exdir") == "/hello.exdir"
@@ -478,3 +468,5 @@ end
 #         assert isinstance(f, File)
 
 #     assert not f
+
+end

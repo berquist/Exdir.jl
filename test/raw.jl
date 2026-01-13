@@ -1,9 +1,11 @@
 using Exdir
 using Test
 
-import Exdir
+import Exdir: IOError
 
-include("support.jl")
+# include("support.jl")
+
+@testset "raw" begin
 
 @testset "raw_init" begin
     fx = setup_teardown_folder()
@@ -74,4 +76,6 @@ end
     raw = create_raw(dset, "raw")
 
     @test ispath(joinpath(f.directory, "group", "dataset", "raw"))
+end
+
 end
